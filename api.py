@@ -124,6 +124,18 @@ class API(object):
 		data=self.base_data('GetNpcFriendList',2)
 		return self.callAPI(self.c2_api,data)
 
+	def GetWizardInfo(self):
+		data=self.base_data('GetWizardInfo',2)
+		return self.callAPI(self.c2_api,data)
+
+	def CheckDailyReward(self):
+		data=self.base_data('CheckDailyReward',2)
+		return self.callAPI(self.c2_api,data)
+
+	def gettrialtowerupdateremained(self):
+		data=self.base_data('gettrialtowerupdateremained',2)
+		return self.callAPI(self.c2_api,data)
+
 	def SetWizardName(self,name):
 		self.log('new name:%s'%(name))
 		data=OrderedDict([('command','SetWizardName'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454178'),('wizard_name',name)])
@@ -186,6 +198,14 @@ class API(object):
 		data=OrderedDict([('command','SacrificeUnit'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454138'),('target_id',target_id),('island_id','1'),('building_id','0'),('pos_x','8'),('pos_y','14'),('source_list',source_list)])
 		return self.callAPI(self.c2_api,data)
 
+	def ReceiveMail(self,mail_id_list):
+		data=OrderedDict([('command','ReceiveMail'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264258'),('mail_id_list',mail_id_list),('island_id','1'),('pos_x','19'),('pos_y','27')])
+		return self.callAPI(self.c2_api,data)
+
+	def GetWorldBossStatus(self,worldboss_id):
+		data=OrderedDict([('command','GetWorldBossStatus'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264277'),('wizard_id',self.wizard_id),('worldboss_id',worldboss_id)])
+		return self.callAPI(self.c2_api,data)
+
 	def setUser(self,input):
 		self.user=input
 		self.wizard_id=input['wizard_info']['wizard_id']
@@ -217,6 +237,15 @@ class API(object):
 		self.log('quest finished, win:%s'%(input['win_lose']))
 		self.log('rewards:%s'%(input['reward']))
 		
+	def doMission(self,region_id,stage_no,difficulty):
+		unit_id_list=[]
+		for unit in self.user['defense_unit_list']:
+			unit_id_list.append({'unit_id':unit['unit_id']})
+		battle_start=self.BattleScenarioStart(region_id,stage_no,difficulty,unit_id_list)
+		res=self.parseBattleStart(battle_start)
+		battle_end=self.BattleScenarioResult(res[0],res[1],self.user['defense_unit_list'],{"island_id":1,"pos_x":14,"pos_y":24})
+		self.parseBattleResult(battle_end)
+
 	def completeTutorial(self):
 		self.getServerStatus()
 		self.getVersionInfo()
