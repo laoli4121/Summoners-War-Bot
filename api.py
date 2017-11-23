@@ -15,12 +15,12 @@ class API(object):
 		self.crypter=Crypter()
 		self.s=requests.session()
 		self.s.verify=False
-		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.0.37000 CFNetwork/808.2.16 Darwin/16.3.0'})
+		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.1.37100 CFNetwork/808.2.16 Darwin/16.3.0'})
 		if 'win' in sys.platform:
 			self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11000
-		self.app_version='3.7.0'
+		self.proto_ver=11010
+		self.app_version='3.7.1'
 		self.c2_api='http://summonerswar-gb.qpyou.cn/api/gateway_c2.php'
 		self.uid=uid
 		self.did=did
@@ -220,7 +220,7 @@ class API(object):
 		return 'id:%s username:%s energy:%s mana:%s crystal:%s'%(self.user['wizard_info']['wizard_id'],self.user['wizard_info']['wizard_name'],self.user['wizard_info']['wizard_energy'],self.user['wizard_info']['wizard_mana'],self.user['wizard_info']['wizard_crystal'])
 		
 	def GuestLogin(self):
-		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push','1'),('is_emulator','0'),('country','DE'),('lang','eng'),('lang_game','1'),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size','10347504'),('binary_check','00ebb9ec2dc09ed93c042b35c4b51590'),('create_if_not_exist','1')])
+		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push','1'),('is_emulator','0'),('country','DE'),('lang','eng'),('lang_game','1'),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size','10347520'),('binary_check','0362fb5801ed351c3676d57cebfa7a60'),('create_if_not_exist','1')])
 		res= self.callAPI(self.c2_api,data)
 		self.setUser(res)
 		self.log(self.getUserInfo())
