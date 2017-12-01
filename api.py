@@ -15,12 +15,12 @@ class API(object):
 		self.crypter=Crypter()
 		self.s=requests.session()
 		self.s.verify=False
-		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.1.37100 CFNetwork/808.2.16 Darwin/16.3.0'})
+		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.2.37200 CFNetwork/808.2.16 Darwin/16.3.0'})
 		if 'win' in sys.platform:
 			self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11010
-		self.app_version='3.7.1'
+		self.proto_ver=11020
+		self.app_version='3.7.2'
 		self.c2_api='http://summonerswar-gb.qpyou.cn/api/gateway_c2.php'
 		self.uid=uid
 		self.did=did
