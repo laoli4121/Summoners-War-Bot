@@ -6,24 +6,32 @@ import json
 import requests
 import sys
 import time
+import socket
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class API(object):
-	def __init__(self,uid,did):
+	def __init__(self,uid,did,id=None,email=None,session=None):
 		self.crypter=Crypter()
 		self.s=requests.session()
 		self.s.verify=False
 		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.2.37200 CFNetwork/808.2.16 Darwin/16.3.0'})
-		#if 'win' in sys.platform:
-		#	self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
+		if 'Admin-PC' == socket.gethostname():
+			self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
 		self.proto_ver=11020
 		self.app_version='3.7.2'
 		self.c2_api='http://summonerswar-gb.qpyou.cn/api/gateway_c2.php'
-		self.uid=uid
-		self.did=did
+		self.uid=int(uid)
+		self.did=int(did)
+		self.isHive=False
+		if id and email:
+			self.log('hive account')
+			self.id=id
+			self.email=email
+			self.isHive=True
+			self.session_key=session
 		self.log('uid:%s did:%s'%(uid,did))
 
 	def setIDFA(self,id):
@@ -40,9 +48,13 @@ class API(object):
 		res= self.crypter.decrypt_response(res.content,2 if '_c2.php' in path else 1)
 		if 'wizard_info' in res and 'wizard_id' in res:
 			self.updateWizard(json.loads(res)['wizard_info'])
+		rj=json.loads(res)
 		if 'ret_code' in res:
-			self.log('ret_code:%s command:%s'%(json.loads(res)['ret_code'],json.loads(res)['command']))
-		return json.loads(res)
+			if rj['ret_code']<>0:
+				self.log('failed to send data for %s'%(rj['command']))
+				return None
+			self.log('ret_code:%s command:%s'%(rj['ret_code'],rj['command']))
+		return rj
 
 	def getServerStatus(self):
 		data={}
@@ -64,16 +76,16 @@ class API(object):
 		for v in input:
 			if v['topic']=='protocol':
 				self.log('found proto_ver:%s'%(v['version']))
-				self.proto_ver=v['version']
+				self.proto_ver=int(v['version'])
 			if v['topic']=='infocsv':
 				self.log('found infocsv:%s'%(v['version']))
 				self.infocsv=v['version']
 	
 	def base_data(self,cmd,kind=1):
 		if kind == 1:
-			data=OrderedDict([('command',cmd),('game_index',self.game_index),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid)])
+			data=OrderedDict([('command',cmd),('game_index',self.game_index),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid)])
 		elif kind ==2:
-			data=OrderedDict([('command',cmd),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.uid),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454877')])
+			data=OrderedDict([('command',cmd),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.uid),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454877')])
 		return data
 
 	def CheckLoginBlock(self):
@@ -138,72 +150,78 @@ class API(object):
 
 	def SetWizardName(self,name):
 		self.log('new name:%s'%(name))
-		data=OrderedDict([('command','SetWizardName'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454178'),('wizard_name',name)])
+		data=OrderedDict([('command','SetWizardName'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454178'),('wizard_name',name)])
 		return self.callAPI(self.c2_api,data)
 
 	def UpdateEventStatus(self,event_id):
-		data=OrderedDict([('command','UpdateEventStatus'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454202'),('event_id',event_id)])
+		data=OrderedDict([('command','UpdateEventStatus'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454202'),('event_id',event_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def GetEventTimeTable(self):
-		data=OrderedDict([('command','GetEventTimeTable'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454203'),('lang','1'),('app_version',self.app_version)])
+		data=OrderedDict([('command','GetEventTimeTable'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454203'),('lang','1'),('app_version',self.app_version)])
 		return self.callAPI(self.c2_api,data)
 
 	def Harvest(self,building_id):
 		self.log('harvesting from:%s'%(building_id))
-		data=OrderedDict([('command','Harvest'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454214'),('building_id',building_id)])
+		data=OrderedDict([('command','Harvest'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454214'),('building_id',building_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def TriggerShopItem(self,trigger_id):
-		data=OrderedDict([('command','TriggerShopItem'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('trigger_id',trigger_id)])
+		data=OrderedDict([('command','TriggerShopItem'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('trigger_id',trigger_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def UpdateAchievement(self,ach_list):
-		data=OrderedDict([('command','UpdateAchievement'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('ach_list',ach_list)])
+		data=OrderedDict([('command','UpdateAchievement'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('ach_list',ach_list)])
 		return self.callAPI(self.c2_api,data)
 
 	def UpdateDailyQuest(self,quests):
-		data=OrderedDict([('command','UpdateDailyQuest'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('quests',quests)])
+		data=OrderedDict([('command','UpdateDailyQuest'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454226'),('quests',quests)])
 		return self.callAPI(self.c2_api,data)
 
+	def getUID(self):
+		if self.isHive:
+			return self.session_key
+		else:
+			return self.uid
+		
 	def BattleScenarioStart(self,region_id,stage_no,difficulty,unit_id_list):
-		data=OrderedDict([('command','BattleScenarioStart'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454271'),('region_id',region_id),('stage_no',stage_no),('difficulty',difficulty),('unit_id_list',unit_id_list),('helper_list','[]'),('mentor_helper_list','[]'),('npc_friend_helper_list','[]'),('retry','0')])
+		data=OrderedDict([('command','BattleScenarioStart'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454271'),('region_id',region_id),('stage_no',stage_no),('difficulty',difficulty),('unit_id_list',unit_id_list),('helper_list','[]'),('mentor_helper_list','[]'),('npc_friend_helper_list','[]'),('retry','0')])
 		return self.callAPI(self.c2_api,data)
 
 	def BattleScenarioResult(self,battle_key,opp_unit_status_list,unit_id_list,position):
-		data=OrderedDict([('command','BattleScenarioResult'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454039'),('battle_key',battle_key),('win_lose','1'),('opp_unit_status_list',opp_unit_status_list),('unit_id_list',unit_id_list),('position',position),('clear_time','34524'),('retry','0')])
+		data=OrderedDict([('command','BattleScenarioResult'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454039'),('battle_key',battle_key),('win_lose','1'),('opp_unit_status_list',opp_unit_status_list),('unit_id_list',unit_id_list),('position',position),('clear_time','34524'),('retry','0')])
 		return self.callAPI(self.c2_api,data)
 
 	def SummonUnit(self,building_id,mode,pos_arr):
-		data=OrderedDict([('command','SummonUnit'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454069'),('building_id',building_id),('mode',mode),('pos_arr',pos_arr)])
+		data=OrderedDict([('command','SummonUnit'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454069'),('building_id',building_id),('mode',mode),('pos_arr',pos_arr)])
 		return self.callAPI(self.c2_api,data)
 
 	def EquipRune(self,rune_id,unit_id):
-		data=OrderedDict([('command','EquipRune'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454084'),('rune_id',rune_id),('unit_id',unit_id)])
+		data=OrderedDict([('command','EquipRune'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454084'),('rune_id',rune_id),('unit_id',unit_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def UpgradeRune(self,rune_id,upgrade_curr,cash_used,stone_used):
-		data=OrderedDict([('command','UpgradeRune'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454107'),('rune_id',rune_id),('upgrade_curr',upgrade_curr),('cash_used',cash_used),('stone_used',stone_used)])
+		data=OrderedDict([('command','UpgradeRune'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454107'),('rune_id',rune_id),('upgrade_curr',upgrade_curr),('cash_used',cash_used),('stone_used',stone_used)])
 		return self.callAPI(self.c2_api,data)
 
 	def BuyShopItem(self,item_id,island_id,pos_x,pos_y):
-		data=OrderedDict([('command','BuyShopItem'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454125'),('item_id',item_id),('island_id',island_id),('pos_x',pos_x),('pos_y',pos_y)])
+		data=OrderedDict([('command','BuyShopItem'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454125'),('item_id',item_id),('island_id',island_id),('pos_x',pos_x),('pos_y',pos_y)])
 		return self.callAPI(self.c2_api,data)
 
 	def ClaimAchievementReward(self,ach_id):
-		data=OrderedDict([('command','ClaimAchievementReward'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454428'),('ach_id',ach_id)])
+		data=OrderedDict([('command','ClaimAchievementReward'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454428'),('ach_id',ach_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def SacrificeUnit(self,target_id,source_list):
-		data=OrderedDict([('command','SacrificeUnit'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454138'),('target_id',target_id),('island_id','1'),('building_id','0'),('pos_x','8'),('pos_y','14'),('source_list',source_list)])
+		data=OrderedDict([('command','SacrificeUnit'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178454138'),('target_id',target_id),('island_id','1'),('building_id','0'),('pos_x','8'),('pos_y','14'),('source_list',source_list)])
 		return self.callAPI(self.c2_api,data)
 
 	def ReceiveMail(self,mail_id_list):
-		data=OrderedDict([('command','ReceiveMail'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264258'),('mail_id_list',mail_id_list),('island_id','1'),('pos_x','19'),('pos_y','27')])
+		data=OrderedDict([('command','ReceiveMail'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264258'),('mail_id_list',mail_id_list),('island_id','1'),('pos_x','19'),('pos_y','27')])
 		return self.callAPI(self.c2_api,data)
 
 	def GetWorldBossStatus(self,worldboss_id):
-		data=OrderedDict([('command','GetWorldBossStatus'),('wizard_id',self.wizard_id),('session_key',self.uid),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264277'),('wizard_id',self.wizard_id),('worldboss_id',worldboss_id)])
+		data=OrderedDict([('command','GetWorldBossStatus'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val','1178264277'),('wizard_id',self.wizard_id),('worldboss_id',worldboss_id)])
 		return self.callAPI(self.c2_api,data)
 
 	def setUser(self,input):
@@ -220,7 +238,20 @@ class API(object):
 		return 'id:%s username:%s energy:%s mana:%s crystal:%s'%(self.user['wizard_info']['wizard_id'],self.user['wizard_info']['wizard_name'],self.user['wizard_info']['wizard_energy'],self.user['wizard_info']['wizard_mana'],self.user['wizard_info']['wizard_crystal'])
 		
 	def GuestLogin(self):
-		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push','1'),('is_emulator','0'),('country','DE'),('lang','eng'),('lang_game','1'),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size','10347520'),('binary_check','0362fb5801ed351c3676d57cebfa7a60'),('create_if_not_exist','1')])
+		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push',1),('is_emulator',0),('country','DE'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',10347504),('binary_check','438656fa18e8d547df1393060cc6be53'),('create_if_not_exist',1)])
+		res= self.callAPI(self.c2_api,data)
+		self.setUser(res)
+		self.log(self.getUserInfo())
+		return res	
+
+	def login(self):
+		if self.isHive:
+			return self.HubUserLogin()
+		else:
+			return self.GuestLogin()
+		
+	def HubUserLogin(self):
+		data=OrderedDict([('command','HubUserLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('session_key',self.session_key),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('id',self.id),('email',self.email),('push',1),('is_emulator',0),('country','RU'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',10347504),('binary_check','438656fa18e8d547df1393060cc6be53'),('create_if_not_exist',0)])
 		res= self.callAPI(self.c2_api,data)
 		self.setUser(res)
 		self.log(self.getUserInfo())
@@ -242,6 +273,9 @@ class API(object):
 		for unit in self.user['defense_unit_list']:
 			unit_id_list.append({'unit_id':unit['unit_id']})
 		battle_start=self.BattleScenarioStart(region_id,stage_no,difficulty,unit_id_list)
+		if not battle_start:
+			self.log('dont have battle data')
+			return
 		res=self.parseBattleStart(battle_start)
 		battle_end=self.BattleScenarioResult(res[0],res[1],self.user['defense_unit_list'],{"island_id":1,"pos_x":14,"pos_y":24})
 		self.parseBattleResult(battle_end)
@@ -251,7 +285,7 @@ class API(object):
 		self.getVersionInfo()
 		
 		self.CheckLoginBlock()
-		self.GuestLogin()
+		self.login()
 		self.GetDailyQuests()
 		self.GetMiscReward()
 		self.GetMailList()#4
@@ -337,4 +371,4 @@ if __name__ == "__main__":
 	#a.getServerStatus()
 	#a.getVersionInfo()
 	#a.CheckLoginBlock()
-	#a.GuestLogin()
+	#a.login()
