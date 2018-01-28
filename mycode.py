@@ -4,6 +4,7 @@ from tools import Tools
 
 uid,did=QPYOU('236145028').createNew()
 a=API(uid,did)
+a.setRegion('eu')
 a.setIDFA(Tools().rndDeviceId())
 a.getServerStatus()
 a.getVersionInfo()
