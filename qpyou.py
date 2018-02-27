@@ -1,12 +1,61 @@
-from tools import Tools
+from Crypto.Cipher import AES
+from hashlib import md5
+from tools import Tools,PKCS7Encoder
+import StringIO
+import base64
+import binascii
 import hashlib
+import io
 import json
 import random
 import requests
 import socket
+import time
+import sys
+import zlib
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+class Activeuser(object):
+	def __init__(self):
+		self.encoder = PKCS7Encoder()
+		self.mode = AES.MODE_CBC
+		self.s=requests.session()
+		self.s.verify=False
+		self.s.headers.update({'Content-Type':'text/html','Accept-Language':'en-gb','User-Agent':'SMON_Kr/3.7.8.37800 CFNetwork/808.2.16 Darwin/16.3.0'})
+
+	def getTS(self):
+		return str(int(time.time()))
+
+	def callAPI(self,data):
+		ts=self.getTS()
+		key=self.getkey(ts)
+		new_data=self.encrypt(data,key)
+		r=self.s.post('https://activeuser.qpyou.cn/gateway.php',data=new_data,headers={'REQ-TIMESTAMP':ts,'REQ-AUTHKEY':self.makeAUTHKEY('%s:%s'%(new_data,ts))})
+		return self.decode('%s:%s'%(r.content,r.headers['REQ-TIMESTAMP']))
+
+	def makeAUTHKEY(self,s):
+		return self.getmd5(self.decode(s))
+
+	def decode(self,s):
+		encoded_data,ts=s.split(':')
+		key=self.getkey(ts)
+		return self.decrypt(encoded_data,key)
+
+	def decrypt(self,s,key):
+		e = AES.new(key, self.mode,'\x00'*16)
+		return self.encoder.decode(e.decrypt(base64.b64decode(s)))
+
+	def encrypt(self,s,key):
+		e = AES.new(key, self.mode,'\x00'*16)
+		return base64.b64encode(e.encrypt(self.encoder.encode(s)))
+
+	def getkey(self,s):
+		return self.getmd5(s)[:16]
+
+	def getmd5(self,s):
+		return md5(s).hexdigest()
 
 class QPYOU(object):
 	def __init__(self,did=None):
@@ -27,6 +76,11 @@ class QPYOU(object):
 		
 	def create(self):
 		res = json.loads(self.s.post('https://api.qpyou.cn/guest/create',data=self.p1).content)
+		if res['error_code']==1401:
+			print 'ip banned'
+			if socket.gethostname()=='Admin-PC':
+				return self.create()
+			exit(1)
 		self.guest_uid=res['guest_uid']
 		return res
 	
