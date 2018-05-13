@@ -13,3 +13,4 @@ spawn.bat
 test1.py
 test2.py
 test6.py
+*.txt

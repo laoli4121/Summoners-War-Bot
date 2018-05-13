@@ -10,6 +10,7 @@ import socket
 import sys
 import threading
 import time
+import io
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -19,12 +20,12 @@ class API(object):
 		self.crypter=Crypter()
 		self.s=requests.session()
 		self.s.verify=False
-		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.9.37900 CFNetwork/808.2.16 Darwin/16.3.0'})
+		self.s.headers.update({'User-Agent':'Summoners%20War/3.8.5.38500 CFNetwork/808.2.16 Darwin/16.3.0'})
 		#if 'Admin-PC' == socket.gethostname():
 		#	self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11070
-		self.app_version='3.7.9'
+		self.proto_ver=11120
+		self.app_version='3.8.5'
 		self.c2_api='http://summonerswar-%s.qpyou.cn/api/gateway_c2.php'
 		self.uid=int(uid)
 		self.did=int(did)
@@ -36,6 +37,10 @@ class API(object):
 			self.isHive=True
 			self.session_key=session
 		self.log('uid:%s did:%s'%(uid,did))
+
+	def save(self,data,file):
+		with io.open(file, 'a', encoding='utf8') as thefile:
+			thefile.write('%s\n'%unicode(data))
 
 	def setIsBadBot(self):
 		self.IsBadBot=True
@@ -54,7 +59,7 @@ class API(object):
 		jp = japan
 		sea = asia
 		cn = china
-		hub = ?
+		hub = korea
 		'''
 		if region not in regions:
 			self.log('invalid region, choose one from these:%s'%(','.join(regions)))
@@ -90,7 +95,7 @@ class API(object):
 				if rj['ret_code']<>0:
 					self.log('failed to send data for %s'%(rj['command']))
 					return None
-				self.log('ret_code:%s command:%s'%(rj['ret_code'],rj['command']))
+				#self.log('ret_code:%s command:%s'%(rj['ret_code'],rj['command']))
 			return rj
 		except:
 			return self.callAPI(path,data,True)
@@ -307,6 +312,8 @@ class API(object):
 				for i in range(scroll['item_quantity']):
 					if scroll['item_master_id']==1:
 						self.Summon(1)
+					if scroll['item_master_id']==3:
+						self.Summon(7)
 
 	def SummonUnit(self,building_id,mode,pos_arr):
 		data=OrderedDict([('command','SummonUnit'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('building_id',building_id),('mode',mode),('pos_arr',pos_arr)])
@@ -367,7 +374,7 @@ class API(object):
 		return 'username:%s energy:%s mana:%s crystal:%s level:%s'%(self.user['wizard_info']['wizard_name'],self.user['wizard_info']['wizard_energy'],self.user['wizard_info']['wizard_mana'],self.user['wizard_info']['wizard_crystal'],self.user['wizard_info']['wizard_level'])
 		
 	def GuestLogin(self):
-		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push',1),('is_emulator',0),('country','DE'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',10448304),('binary_check','87c2986b797cfdf61e5816809395ad8d'),('create_if_not_exist',1)])
+		data=OrderedDict([('command','GuestLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('push',1),('is_emulator',0),('country','DE'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',0),('binary_check',''),('create_if_not_exist',1)])
 		res= self.callAPI(self.c2_api,data)
 		self.setUser(res)
 		self.log(self.getUserInfo())
@@ -385,7 +392,7 @@ class API(object):
 		return res
 		
 	def HubUserLogin(self):
-		data=OrderedDict([('command','HubUserLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('session_key',self.session_key),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('id',self.id),('email',self.email),('push',1),('is_emulator',0),('country','RU'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',10448304),('binary_check','87c2986b797cfdf61e5816809395ad8d'),('create_if_not_exist',0)])
+		data=OrderedDict([('command','HubUserLogin'),('game_index',self.game_index),('proto_ver',self.proto_ver),('app_version',self.app_version),('session_key',self.session_key),('infocsv',self.infocsv),('uid',self.uid),('channel_uid',self.uid),('did',self.did),('id',self.id),('email',self.email),('push',1),('is_emulator',0),('country','RU'),('lang','eng'),('lang_game',1),('mac_address','02:00:00:00:00:00'),('device_name','iPhone10,6'),('os_version','11.1'),('token','0000000000000000000000000000000000000000000000000000000000000000'),('idfv',self.idfa),('adid','00000000-0000-0000-0000-000000000000'),('binary_size',0),('binary_check',''),('create_if_not_exist',0)])
 		res= self.callAPI(self.c2_api,data)
 		self.setUser(res)
 		self.log(self.getUserInfo())
@@ -521,13 +528,16 @@ class API(object):
 				repeat+=1
 				for wizard in arena_list:
 					if self.user['wizard_info']['wizard_level']<=10:
-						limit=12
+						limit=15
 					elif self.user['wizard_info']['wizard_level']>10 and self.user['wizard_info']['wizard_level']<=20:
-						limit=25
+						limit=22
 					if wizard['defeat']==0 and wizard['wizard_level']<=limit:
 						if not self.doArena(wizard['wizard_id']):
 							hasVic=False
 							break
+						#else:
+						#	self.log('killed %s lvl'%(wizard['wizard_level']))
+						#	self.save('pvp:%s me:%s'%(wizard['wizard_level'],self.user['wizard_info']['wizard_level']),'arena.txt')
 				refresh=1
 		if hasattr(self,'IsBadBot') and self.user['wizard_info']['wizard_crystal']>=30 and self.user['wizard_info']['arena_energy']==0:
 			self.BuyShopItem('300001',0,0,0)
@@ -551,8 +561,8 @@ class API(object):
 		for quest in quest_list:
 			if quest['completed']==1 and quest['rewarded']==0: 
 				self.RewardDailyQuest(quest['quest_id'])
-		self.UpdateAchievement([{'current': 2, 'ach_id': 6, 'cond_id': 3}, {'current': 7, 'ach_id': 263, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 115, 'ach_id': 4, 'cond_id': 1}, {'current': 1, 'ach_id': 5, 'cond_id': 1}, {'current': 2, 'ach_id': 6, 'cond_id': 2}, {'current': 1, 'ach_id': 20, 'cond_id': 1}, {'current': 1, 'ach_id': 23, 'cond_id': 1}, {'current': 2, 'ach_id': 29, 'cond_id': 1}, {'current': 6, 'ach_id': 31, 'cond_id': 1}, {'current': 1, 'ach_id': 33, 'cond_id': 3}, {'current': 1, 'ach_id': 192, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 7, 'ach_id': 263, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 450, 'ach_id': 4, 'cond_id': 1}, {'current': 2, 'ach_id': 23, 'cond_id': 1}, {'current': 9, 'ach_id': 29, 'cond_id': 1}, {'current': 1, 'ach_id': 171, 'cond_id': 1}, {'current': 1, 'ach_id': 205, 'cond_id': 1}, {'current': 1, 'ach_id': 206, 'cond_id': 1}, {'current': 1, 'ach_id': 213, 'cond_id': 1}, {'current': 1, 'ach_id': 214, 'cond_id': 1}, {'current': 1, 'ach_id': 229, 'cond_id': 1}, {'current': 1, 'ach_id': 230, 'cond_id': 1}, {'current': 1, 'ach_id': 260, 'cond_id': 1}, {'current': 1, 'ach_id': 261, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 3, 'ach_id': 177, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 3, 'ach_id': 178, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 3, 'ach_id': 179, 'cond_id': 1}])
@@ -561,42 +571,42 @@ class API(object):
 		self.UpdateAchievement([{'current': 3, 'ach_id': 303, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 3, 'ach_id': 304, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 3, 'ach_id': 305, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 1, 'ach_id': 33, 'cond_id': 2}, {'current': 5, 'ach_id': 177, 'cond_id': 1}, {'current': 5, 'ach_id': 178, 'cond_id': 1}, {'current': 5, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 257, 'cond_id': 1}, {'current': 5, 'ach_id': 299, 'cond_id': 1}, {'current': 5, 'ach_id': 300, 'cond_id': 1}, {'current': 5, 'ach_id': 303, 'cond_id': 1}, {'current': 5, 'ach_id': 304, 'cond_id': 1}, {'current': 5, 'ach_id': 305, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 7, 'ach_id': 264, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 2, 'ach_id': 6, 'cond_id': 1}, {'current': 6, 'ach_id': 177, 'cond_id': 1}, {'current': 6, 'ach_id': 178, 'cond_id': 1}, {'current': 6, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 265, 'cond_id': 1}, {'current': 6, 'ach_id': 299, 'cond_id': 1}, {'current': 6, 'ach_id': 300, 'cond_id': 1}, {'current': 6, 'ach_id': 303, 'cond_id': 1}, {'current': 6, 'ach_id': 304, 'cond_id': 1}, {'current': 6, 'ach_id': 305, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 7, 'ach_id': 177, 'cond_id': 1}, {'current': 7, 'ach_id': 178, 'cond_id': 1}, {'current': 7, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 266, 'cond_id': 1}, {'current': 7, 'ach_id': 299, 'cond_id': 1}, {'current': 7, 'ach_id': 300, 'cond_id': 1}, {'current': 7, 'ach_id': 303, 'cond_id': 1}, {'current': 7, 'ach_id': 304, 'cond_id': 1}, {'current': 7, 'ach_id': 305, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 0, 'ach_id': 171, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 2, 'ach_id': 6, 'cond_id': 2}, {'current': 1, 'ach_id': 33, 'cond_id': 2}, {'current': 5, 'ach_id': 177, 'cond_id': 1}, {'current': 5, 'ach_id': 178, 'cond_id': 1}, {'current': 5, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 257, 'cond_id': 1}, {'current': 5, 'ach_id': 299, 'cond_id': 1}, {'current': 5, 'ach_id': 300, 'cond_id': 1}, {'current': 5, 'ach_id': 303, 'cond_id': 1}, {'current': 5, 'ach_id': 304, 'cond_id': 1}, {'current': 5, 'ach_id': 305, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 2, 'ach_id': 6, 'cond_id': 3}, {'current': 7, 'ach_id': 264, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 6, 'ach_id': 177, 'cond_id': 1}, {'current': 6, 'ach_id': 178, 'cond_id': 1}, {'current': 6, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 265, 'cond_id': 1}, {'current': 6, 'ach_id': 299, 'cond_id': 1}, {'current': 6, 'ach_id': 300, 'cond_id': 1}, {'current': 6, 'ach_id': 303, 'cond_id': 1}, {'current': 6, 'ach_id': 304, 'cond_id': 1}, {'current': 6, 'ach_id': 305, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 2, 'ach_id': 6, 'cond_id': 1}, {'current': 7, 'ach_id': 177, 'cond_id': 1}, {'current': 7, 'ach_id': 178, 'cond_id': 1}, {'current': 7, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 266, 'cond_id': 1}, {'current': 7, 'ach_id': 299, 'cond_id': 1}, {'current': 7, 'ach_id': 300, 'cond_id': 1}, {'current': 7, 'ach_id': 303, 'cond_id': 1}, {'current': 7, 'ach_id': 304, 'cond_id': 1}, {'current': 7, 'ach_id': 305, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 7, 'ach_id': 267, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 8, 'ach_id': 177, 'cond_id': 1}, {'current': 8, 'ach_id': 178, 'cond_id': 1}, {'current': 8, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 268, 'cond_id': 1}, {'current': 8, 'ach_id': 299, 'cond_id': 1}, {'current': 8, 'ach_id': 300, 'cond_id': 1}, {'current': 8, 'ach_id': 303, 'cond_id': 1}, {'current': 8, 'ach_id': 304, 'cond_id': 1}, {'current': 8, 'ach_id': 305, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 7, 'ach_id': 269, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 9, 'ach_id': 177, 'cond_id': 1}, {'current': 9, 'ach_id': 178, 'cond_id': 1}, {'current': 9, 'ach_id': 179, 'cond_id': 1}, {'current': 9, 'ach_id': 299, 'cond_id': 1}, {'current': 9, 'ach_id': 300, 'cond_id': 1}, {'current': 9, 'ach_id': 303, 'cond_id': 1}, {'current': 9, 'ach_id': 304, 'cond_id': 1}, {'current': 9, 'ach_id': 305, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 1, 'ach_id': 33, 'cond_id': 3}, {'current': 9, 'ach_id': 177, 'cond_id': 1}, {'current': 9, 'ach_id': 178, 'cond_id': 1}, {'current': 9, 'ach_id': 179, 'cond_id': 1}, {'current': 9, 'ach_id': 299, 'cond_id': 1}, {'current': 9, 'ach_id': 300, 'cond_id': 1}, {'current': 9, 'ach_id': 303, 'cond_id': 1}, {'current': 9, 'ach_id': 304, 'cond_id': 1}, {'current': 9, 'ach_id': 305, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 7, 'ach_id': 270, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 7, 'ach_id': 271, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 1, 'ach_id': 5, 'cond_id': 1}, {'current': 10, 'ach_id': 29, 'cond_id': 1}, {'current': 1, 'ach_id': 192, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 10, 'ach_id': 177, 'cond_id': 1}, {'current': 10, 'ach_id': 178, 'cond_id': 1}, {'current': 10, 'ach_id': 179, 'cond_id': 1}, {'current': 7, 'ach_id': 272, 'cond_id': 1}, {'current': 10, 'ach_id': 299, 'cond_id': 1}, {'current': 10, 'ach_id': 300, 'cond_id': 1}, {'current': 10, 'ach_id': 303, 'cond_id': 1}, {'current': 10, 'ach_id': 304, 'cond_id': 1}, {'current': 10, 'ach_id': 305, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 7, 'ach_id': 273, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 1, 'ach_id': 171, 'cond_id': 1}])
 		self.UpdateAchievement([{'current': 13, 'ach_id': 177, 'cond_id': 1}, {'current': 13, 'ach_id': 178, 'cond_id': 1}, {'current': 13, 'ach_id': 179, 'cond_id': 1}, {'current': 13, 'ach_id': 299, 'cond_id': 1}, {'current': 13, 'ach_id': 300, 'cond_id': 1}, {'current': 13, 'ach_id': 303, 'cond_id': 1}, {'current': 13, 'ach_id': 304, 'cond_id': 1}, {'current': 13, 'ach_id': 305, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 3, 'ach_id': 171, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 279, 'ach_id': 4, 'cond_id': 1}])
-		self.UpdateAchievement([{'current': 3, 'ach_id': 29, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 2, 'ach_id': 171, 'cond_id': 1}])
+		self.UpdateAchievement([{'current': 657, 'ach_id': 4, 'cond_id': 1}])
 		self.ClaimAchievementReward(269)
 		self.ClaimAchievementReward(1)
 		self.ClaimAchievementReward(2)
 		self.ClaimAchievementReward(5)
+		self.ClaimAchievementReward(33)
 		self.ClaimAchievementReward(6)
 		self.ClaimAchievementReward(13)
 		self.ClaimAchievementReward(15)
-		self.ClaimAchievementReward(33)
+		self.ClaimAchievementReward(264)
 		self.ClaimAchievementReward(192)
 		self.ClaimAchievementReward(263)
 		self.ClaimAchievementReward(257)
-		self.ClaimAchievementReward(264)
 		self.ClaimAchievementReward(265)
 		self.ClaimAchievementReward(266)
+		self.ClaimAchievementReward(271)
+		self.ClaimAchievementReward(272)
 		self.ClaimAchievementReward(267)
 		self.ClaimAchievementReward(268)
 		self.ClaimAchievementReward(270)
-		self.ClaimAchievementReward(271)
-		self.ClaimAchievementReward(272)
 		self.ClaimAchievementReward(273)
 		self.getAllMail()
 
@@ -613,9 +623,9 @@ class API(object):
 		self.UpdateEventStatus(80001)
 		self.UpdateEventStatus(4)
 		self.UpdateEventStatus(10001)
-		self.UpdateEventStatus(508)
-		self.UpdateEventStatus(507)
 		self.UpdateEventStatus(506)
+		self.UpdateEventStatus(507)
+		self.UpdateEventStatus(508)
 		self.UpdateEventStatus(509)
 		self.UpdateEventStatus(510)
 		self.UpdateEventStatus(531)
@@ -623,9 +633,8 @@ class API(object):
 		self.UpdateEventStatus(511)
 		self.UpdateEventStatus(60005)
 		self.UpdateEventStatus(17)
-		self.UpdateEventStatus(50007)
-		self.UpdateEventStatus(540)
 		self.UpdateEventStatus(541)
+		self.UpdateEventStatus(540)
 		self.UpdateEventStatus(542)
 		self.UpdateEventStatus(543)
 		self.UpdateEventStatus(544)
@@ -634,8 +643,9 @@ class API(object):
 		self.UpdateEventStatus(546)
 		self.UpdateEventStatus(8)
 		self.UpdateEventStatus(20001)
-		self.UpdateEventStatus(513)
+		self.UpdateEventStatus(50029)
 		self.UpdateEventStatus(512)
+		self.UpdateEventStatus(513)
 		self.UpdateEventStatus(514)
 		self.UpdateEventStatus(515)
 		self.UpdateEventStatus(516)
@@ -643,18 +653,15 @@ class API(object):
 		self.UpdateEventStatus(9)
 		self.UpdateEventStatus(517)
 		self.UpdateEventStatus(10)
-		self.UpdateEventStatus(519)
+		self.UpdateEventStatus(1008)
 		self.UpdateEventStatus(518)
+		self.UpdateEventStatus(519)
 		self.UpdateEventStatus(520)
 		self.UpdateEventStatus(521)
 		self.UpdateEventStatus(522)
 		self.UpdateEventStatus(533)
 		self.UpdateEventStatus(523)
 		self.UpdateEventStatus(12)
-		self.UpdateEventStatus(13)
-		self.UpdateEventStatus(19)
-		self.UpdateEventStatus(1008)
-		self.UpdateEventStatus(1010)
 		self.UpdateEventStatus(547)
 		self.UpdateEventStatus(548)
 		self.UpdateEventStatus(549)
@@ -663,9 +670,11 @@ class API(object):
 		self.UpdateEventStatus(552)
 		self.UpdateEventStatus(20)
 		self.UpdateEventStatus(553)
+		self.UpdateEventStatus(13)
+		self.UpdateEventStatus(19)
 		self.UpdateEventStatus(21)
 		self.UpdateEventStatus(14)
-		self.UpdateEventStatus(50029)
+		self.UpdateEventStatus(1010)
 		self.UpdateEventStatus(524)
 		self.UpdateEventStatus(525)
 		self.UpdateEventStatus(526)
@@ -677,6 +686,7 @@ class API(object):
 		self.UpdateEventStatus(70001)
 		self.UpdateEventStatus(70005)
 		self.UpdateEventStatus(22)
+		self.UpdateEventStatus(1020)
 		self.UpdateEventStatus(554)
 		self.UpdateEventStatus(555)
 		self.UpdateEventStatus(556)
@@ -686,7 +696,6 @@ class API(object):
 		self.UpdateEventStatus(23)
 		self.UpdateEventStatus(560)
 		self.UpdateEventStatus(24)
-		self.UpdateEventStatus(1020)
 		self.UpdateEventStatus(562)
 		self.UpdateEventStatus(561)
 		self.UpdateEventStatus(563)
@@ -695,9 +704,6 @@ class API(object):
 		self.UpdateEventStatus(566)
 		self.UpdateEventStatus(567)
 		self.UpdateEventStatus(25)
-		self.UpdateEventStatus(26)
-		self.UpdateEventStatus(27)
-		self.UpdateEventStatus(1030)
 		self.UpdateEventStatus(568)
 		self.UpdateEventStatus(569)
 		self.UpdateEventStatus(570)
@@ -706,7 +712,10 @@ class API(object):
 		self.UpdateEventStatus(573)
 		self.UpdateEventStatus(574)
 		self.UpdateEventStatus(28)
+		self.UpdateEventStatus(26)
+		self.UpdateEventStatus(27)
 		self.UpdateEventStatus(29)
+		self.UpdateEventStatus(1030)
 		self.UpdateEventStatus(575)
 		self.UpdateEventStatus(576)
 		self.UpdateEventStatus(577)
@@ -716,17 +725,21 @@ class API(object):
 		self.UpdateEventStatus(581)
 		self.UpdateEventStatus(30)
 		self.UpdateEventStatus(31)
+		self.UpdateEventStatus(1026)
+		self.UpdateEventStatus(1024)
 		self.UpdateEventStatus(582)
 		self.UpdateEventStatus(583)
 		self.UpdateEventStatus(584)
-		self.UpdateEventStatus(586)
 		self.UpdateEventStatus(585)
+		self.UpdateEventStatus(586)
 		self.UpdateEventStatus(587)
 		self.UpdateEventStatus(588)
 		self.UpdateEventStatus(32)
 		self.UpdateEventStatus(60006)
 		self.UpdateEventStatus(60025)
 		self.UpdateEventStatus(33)
+		self.UpdateEventStatus(1033)
+		self.UpdateEventStatus(10017)
 		self.UpdateEventStatus(589)
 		self.UpdateEventStatus(590)
 		self.UpdateEventStatus(591)
@@ -739,11 +752,8 @@ class API(object):
 		self.UpdateEventStatus(35)
 		self.UpdateEventStatus(36)
 		self.UpdateEventStatus(50038)
-		self.UpdateEventStatus(10017)
 		self.UpdateEventStatus(10019)
-		self.UpdateEventStatus(1033)
-		self.UpdateEventStatus(50025)
-		self.UpdateEventStatus(1026)
+		self.UpdateEventStatus(50015)
 
 	def getArenaWins(self):
 		self.log('%s arena wins'%(self.user['pvp_info']['arena_win']))
