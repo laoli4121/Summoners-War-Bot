@@ -24,8 +24,8 @@ class API(object):
 		#if 'Admin-PC' == socket.gethostname():
 		#	self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11130
-		self.app_version='3.8.6'
+		self.proto_ver=11140
+		self.app_version='3.8.7'
 		self.c2_api='http://summonerswar-%s.qpyou.cn/api/gateway_c2.php'
 		self.uid=int(uid)
 		self.did=int(did)
@@ -72,8 +72,11 @@ class API(object):
 		self.idfa=id
 		
 	def log(self,msg):
-		print '[%s]:%s'%(time.strftime('%H:%M:%S'),msg)
-		
+		try:
+			print '[%s]:%s'%(time.strftime('%H:%M:%S'),msg.encode('utf-8'))
+		except:
+			pass
+
 	def callAPI(self,path,data,repeat=False):
 		try:
 			old_data=None

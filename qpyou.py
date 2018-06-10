@@ -14,6 +14,8 @@ import socket
 import sys
 import time
 import zlib
+import re
+from crypt import Crypter
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -64,19 +66,26 @@ class QPYOU(object):
 		self.s.verify=False
 		if 'Admin-PC' == socket.gethostname():
 			self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
-		self.s.headers.update({'Content-Type':'application/json','Accept-Language':'en-gb','User-Agent':'SMON_Kr/3.7.0.37000 CFNetwork/808.2.16 Darwin/16.3.0'})
+		self.s.headers.update({'User-Agent':'SMON_Kr/3.7.0.37000 CFNetwork/808.2.16 Darwin/16.3.0','Accept-Language':'en-gb'})
 		self.did=did
 		self.guest_uid=None
-		self.p1='{"language":"en","timezone":null,"game_language":"en","server_id":"","device_country":"RU","hive_country":"RU"}'
+		self.p1='{"language":"en","timezone":null,"game_language":"en","server_id":"","device_country":"RU","hive_country":"%s"}'
 		self.p2='{"hive_country":"RU","device_country":"RU","guest_uid":"%s","timezone":null,"language":"en","game_language":"en","server_id":""}'
+		self._crypter=Crypter()
+		self.getCountry()
 		
 	def MD5(self,i):
 		m = hashlib.md5()
 		m.update(i)
 		return m.hexdigest()
 		
+	def getCountry(self):
+		r=self.s.get('http://summonerswar-eu.com2us.net/api/location_c2.php')
+		self.hive_country=json.loads(self._crypter.decrypt_response(r.content,2))['country_code']
+		return self.hive_country
+
 	def create(self):
-		res = json.loads(self.s.post('https://api.qpyou.cn/guest/create',data=self.p1).content)
+		res = json.loads(self.s.post('https://api.qpyou.cn/guest/create',data=self.p1%(self.hive_country)).content)
 		if res['error_code']==1401:
 			print 'ip banned'
 			if socket.gethostname()=='Admin-PC':
@@ -89,37 +98,56 @@ class QPYOU(object):
 		return json.loads(self.s.post('https://api.qpyou.cn/guest/auth',data=self.p2%(self.guest_uid)).content)
 		
 	def registered(self):
-		return json.loads(self.s.post('https://api.qpyou.cn/device/registered',data=self.p1).content)
+		return json.loads(self.s.post('https://api.qpyou.cn/device/registered',data=self.p1%(self.hive_country)).content)
 		
 	def me(self):
-		res=self.s.post('https://api.qpyou.cn/user/me',data=self.p1)
+		res=self.s2.post('https://api.qpyou.cn/user/me',data=self.p1%(self.hive_country),headers={'Content-Type':'application/json','Accept-Language':'en-gb','User-Agent':'Summoners%20War/3.8.6.38601 CFNetwork/808.2.16 Darwin/16.3.0'})
 		if 'thorization Faile' in res.content:
 			return None
 		return json.loads(res.content)
 
+	def otpVerification(self,udata):
+		if 'ct' not in udata and 'iv' not in udata and '"s"' not in udata and '"d"' not in udata:
+			print 'bad data'
+			exit(1)
+		r=self.s2.post('https://hub.qpyou.cn/otp/verification',data=udata,headers={'Accept':'application/json, text/javascript, */*; q=0.01','Origin':'https://hub.qpyou.cn','X-Requested-With':'XMLHttpRequest','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','DNT':'1','Referer':'https://hub.qpyou.cn/otp/main'})
+		return json.loads(r.content)['result']==0
+
 	def hiveLogin(self,user,password):
-		self.s.cookies.update({'hive_config_language':'en_US','hive_config_nationality':'CH','inquiry_language':'en_US','advertising_id':'00000000-0000-0000-0000-000000000000','appid':'com.com2us.smon.normal.freefull.apple.kr.ios.universal','device':'iPad5,4','did':str(random.randint(200000000,300000000)) if not self.did else str(self.did),'native_version':'Hub v.2.6.5','osversion':'10.2','platform':'ios','vendor_id':Tools().rndDeviceId(),'gameindex':'2623','hive_source':'C'})
-		self.registered()
-		r1=self.s.post('https://hub.qpyou.cn/auth',data='{"language":"en","timezone":null,"game_language":"en","server_id":"","device_country":"RU","hive_country":"CH"}',allow_redirects=False)
-		data='id={}&password=&dkagh={}'.format(user,self.MD5(password))
-		self.s.get('https://hub.qpyou.cn/auth/recent_account',cookies=r1.cookies)
-		rr= self.s.post('https://hub.qpyou.cn/auth/login_proc',data=data,headers={'Content-Type':'application/x-www-form-urlencoded','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 10_2 like Mac OS X) AppleWebKit/602.3.12 (KHTML, like Gecko) Version/10.0 Mobile/14C92 Safari/602.1','Referer':'http://hub.qpyou.cn/auth/login'},allow_redirects=False)
-		if '/otp/' in rr.headers['Location']:
+		self.s2=requests.Session()
+		self.s2.verify=False
+		self.s2.headers.update({'Upgrade-Insecure-Requests':'1','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1'})
+		if 'Admin-PC' == socket.gethostname():
+			self.s2.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
+		#self.registered()
+		s2r=self.s2.get('https://hub.qpyou.cn/auth')
+		if '/hub.qpyou.cn/auth/login_proc' not in s2r.content:
+			print 'login page broken'
+			exit(1)
+		rr= self.s2.post('https://hub.qpyou.cn/auth/login_proc',data='id={}&password=&dkagh={}'.format(user,self.MD5(password)),headers={'Cache-Control':'max-age=0','Origin':'https://hub.qpyou.cn','Upgrade-Insecure-Requests':'1','Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1','Referer':'https://hub.qpyou.cn/auth/login'})
+		if '/otp/main' in rr.url:
 			print 'detected otp..'
-			self.s.get('https://hub.qpyou.cn/otp/main',headers={'Origin':'https://hub.qpyou.cn','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','User-Agent':'Mozilla/5.0 (iPad; CPU OS 10_2 like Mac OS X) AppleWebKit/602.3.12 (KHTML, like Gecko) Mobile/14C92','Accept-Language':'en-gb','Referer':'https://hub.qpyou.cn/auth/recent_account'})
-			_udata=raw_input('Open this: /otp/aes.html?mail=MYMAIL@MY.COM&code=123456 and paste the console log here')
-			if 'ct' not in _udata and 'iv' not in _udata and '"s"' not in _udata and '"d"' not in _udata:
-				print 'bad data'
-				exit(1)
-			self.s.post('https://hub.qpyou.cn/otp/verification',data=_udata)
-			rr=self.s.get('https://hub.qpyou.cn/otp/login')
-		sss= rr.headers['Location'].split('&')
-		sessionkey=sss[3].replace('sessionkey=','')
-		_did=sss[2].replace('did=','')
-		res=self.me()
-		if not res:
+			if 'class="join_otp"' in rr.content:
+				_send_to=re.search('class="user_inform">(.*)</span>',rr.content).group(1)
+				_udata=raw_input('Open this: /otp/aes.html?mail=%s&code=123456 and paste the console log here:\n'%(_send_to))
+				if self.otpVerification(_udata.rstrip()):
+					rr=self.s2.get('https://hub.qpyou.cn/otp/login',headers={'Cache-Control':'max-age=0','Origin':'https://hub.qpyou.cn','Upgrade-Insecure-Requests':'1','Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1','Referer':'https://hub.qpyou.cn/otp/main'})
+					if '/gdpr/login' in rr.url:
+						rr=self.s2.post('https://hub.qpyou.cn/userinfo/gdpr/done',data='',headers={'Cache-Control':'max-age=0','Origin':'https://hub.qpyou.cn','Upgrade-Insecure-Requests':'1','Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1','Referer':'https://hub.qpyou.cn/userinfo/gdpr/login'},allow_redirects=False)
+		self.s2.cookies.update({'gameindex':'2623','hive_config_language':'en_US','inquiry_language':'en_US','advertising_id':'00000000-0000-0000-0000-000000000000','appid':'com.com2us.smon.normal.freefull.apple.kr.ios.universal','device':'iPad5,4','did':str(random.randint(200000000,300000000)) if not self.did else str(self.did),'native_version':'Hub v.2.6.5','osversion':'10.2','platform':'ios','vendor_id':Tools().rndDeviceId()})
+		rr= self.s2.post('https://hub.qpyou.cn/auth/login_proc',data='id={}&password=&dkagh={}'.format(user,self.MD5(password)),headers={'Cache-Control':'max-age=0','Origin':'https://hub.qpyou.cn','Upgrade-Insecure-Requests':'1','Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1','Referer':'https://hub.qpyou.cn/auth/login'},allow_redirects=False)
+		_uid=None
+		if '/gdpr/login' in rr.headers['Location']:
+			rr=self.s2.post('https://hub.qpyou.cn/userinfo/gdpr/done',data='',headers={'Cache-Control':'max-age=0','Origin':'https://hub.qpyou.cn','Upgrade-Insecure-Requests':'1','Content-Type':'application/x-www-form-urlencoded','User-Agent':'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36','Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8','DNT':'1','Referer':'https://hub.qpyou.cn/userinfo/gdpr/login'},allow_redirects=False)
+		if 'c2shub://login?error_code' in rr.headers['Location']:
+			sss= rr.headers['Location'].split('&')
+			_uid = sss[1].replace('uid=','')
+			sessionkey=sss[3].replace('sessionkey=','')
+			_did = sss[2].replace('did=','')
+
+		if not _uid:
 			return None
-		return res['uid'],_did,sessionkey
+		return _uid,_did,sessionkey
 
 	def createNew(self):
 		self.s.cookies.update({'advertising_id':Tools().rndDeviceId(),'appid':'com.com2us.smon.normal.freefull.apple.kr.ios.universal','device':'iPad5,4','did':str(random.randint(200000000,300000000)) if not self.did else str(self.did),'native_version':'Hub v.2.6.4','osversion':'10.2','platform':'ios','vendor_id':Tools().rndDeviceId()})
