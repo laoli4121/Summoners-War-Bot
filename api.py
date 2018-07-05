@@ -465,7 +465,7 @@ class API(object):
 							selled_rune = self.SellRune(rune_id)
 							if selled_rune:
 								self.log("Sell_Rune: %s"%rune_id)
-								return reward_rune, selled_rune, input['reward']['crate']['rune']
+								return reward_rune, True, input['reward']['crate']['rune']
 							else:
 								self.log("sell rune failed")
 								return None
@@ -568,11 +568,19 @@ class API(object):
 		battle_end=self.BattleDungeonResult(battle_key,dungeon_id,stage_id,unit_id_list,opp_unit_status_list)
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
-		#TODO check rune function
 		rewardIsRune ,sell_rune , rune = self.checkReward(battle_end)
-		if rewardIsRune:
-				self.log("sell rune:%s, rune:%s"%(sell_rune, rune))
+		if rewardIsRune and not sell_rune:
+			self.log("get rune:%s"%rune)
 		return battle_end
+
+	def repeatDoDungeonAndSellRune(self, dungeon_id, stage_id):
+		checkResult = True
+		while(checkResult):
+			if self.user['wizard_info']['wizard_energy']<8:
+				break
+			battle_end = self.doDungeonAndSellRune(dungeon_id, stage_id)
+			if not battle_end:
+				checkResult = False
 
 	def doTower(self,floor_id,difficulty):
 		unit_id_list=[]
