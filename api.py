@@ -443,12 +443,11 @@ class API(object):
 		self.log('quest finished, win:%s extra:%s'%(input['win_lose'],extra))
 
 	def parseBattleRiftResult(self,input,extra=''):
-		#TODO edi parse result
-		print("response: %s"%input)
+		self.log('quest finished, rift:%s'%extra)
 
 	def checkReward(self,input):
-		selled_rune = False
 		reward_rune = False
+		goSellRune = False
 		if 'reward' in input:
 			if 'crate' in input['reward']:
 				if 'rune' in input['reward']['crate']:
@@ -459,21 +458,19 @@ class API(object):
 					pri_eff = input['reward']['crate']['rune']['pri_eff']
 					prefix_eff = input['reward']['crate']['rune']['prefix_eff']
 					sec_eff = input['reward']['crate']['rune']['sec_eff']
+					slot_no = input['reward']['crate']['rune']['slot_no']
+					if slot_no == 1 or slot_no == 3 or slot_no == 5:
+						if pri_eff == 1 or pri_eff == 3 or pri_eff == 5:
+							goSellRune = True
 					if rune_class <= 5:
-					#TODO sell rune
 						if rune_rank <= 4:
-							selled_rune = self.SellRune(rune_id)
-							if selled_rune:
-								self.log("Sell_Rune: %s"%rune_id)
-								return reward_rune, True, input['reward']['crate']['rune']
-							else:
-								self.log("sell rune failed")
-								return None
-						else:
-							return reward_rune, selled_rune, input['reward']['crate']['rune']
-					else:
-						return reward_rune, selled_rune,  input['reward']['crate']['rune']
-		return False ,False ,[]
+							goSellRune = True
+					if goSellRune:
+						if not self.SellRune(rune_id):
+							self.log("sell rune failed")
+							return None
+					return reward_rune, goSellRune,  input['reward']['crate']['rune']
+		return reward_rune ,goSellRune ,[]
 
 	def makeUnitList(self,old):
 		res=[]
@@ -600,7 +597,6 @@ class API(object):
 		return battle_end
 
 	def doRiftDungeon(self, rift_dungeon_id):
-		#TODO make rift unit list
 		if rift_dungeon_id == "2001":
 			rift_unit_id_list = [{"unit_id":	4057074615,"slot_index":	1}, {"unit_id":	3645298776,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	5}, {"unit_id":	2866516866,"slot_index":	6}, {"unit_id":	2794249135,"slot_index":	7}, {"unit_id":	2849367222,"slot_index":	8}]
 		elif rift_dungeon_id == "3001":
@@ -617,8 +613,40 @@ class API(object):
 		battle_key, opp_unit_status_list = self.parseBattleStart(battle_start, 3)
 		battle_end = self.BattleRiftDungeonResult(battle_key, rift_dungeon_id)
 		if battle_end:
-			self.parseBattleRiftResult(battle_end, '%s' % (rift_dungeon_id))
+			self.parseBattleRiftResult(battle_end, '%s'%rift_dungeon_id)
 		return battle_end
+
+	def doRiftDungeonAndSellRune(self, rift_dungeon_id):
+		if rift_dungeon_id == "2001":
+			rift_unit_id_list = [{"unit_id": 4057074615, "slot_index": 1}, {"unit_id": 3645298776, "slot_index": 2},{"unit_id": 4960565324, "slot_index": 5}, {"unit_id": 2866516866, "slot_index": 6},{"unit_id": 2794249135, "slot_index": 7}, {"unit_id": 2849367222, "slot_index": 8}]
+		elif rift_dungeon_id == "3001":
+			rift_unit_id_list = [{"unit_id": 4046837916, "slot_index": 2}, {"unit_id": 3091048033, "slot_index": 3},{"unit_id": 3286663977, "slot_index": 4}, {"unit_id": 2857306418, "slot_index": 5},{"unit_id": 4960565324, "slot_index": 6}, {"unit_id": 3929035691, "slot_index": 7}]
+		else:
+			rift_unit_id_list = [{"unit_id": 2995990516, "slot_index": 1}, {"unit_id": 3598700695, "slot_index": 2},{"unit_id": 3952232439, "slot_index": 3}, {"unit_id": 4015394550, "slot_index": 6},{"unit_id": 3571721433, "slot_index": 7}, {"unit_id": 2956011960, "slot_index": 8}]
+		if hasattr(self, 'refillEnergy') and self.user['wizard_info']['wizard_crystal'] >= 30 and \
+			self.user['wizard_info']['wizard_energy'] <= 8:
+			self.BuyShopItem('100001', 0, 0, 0)
+		battle_start = self.BattleRiftDungeonStart(rift_dungeon_id, rift_unit_id_list)
+		if not battle_start:
+			self.log('dont have battle data')
+			return
+		battle_key, opp_unit_status_list = self.parseBattleStart(battle_start, 3)
+		battle_end = self.BattleRiftDungeonResult(battle_key, rift_dungeon_id)
+		if battle_end:
+			self.parseBattleRiftResult(battle_end, '%s'%(rift_dungeon_id))
+		rewardIsRune, sell_rune, rune = self.checkReward(battle_end)
+		if rewardIsRune and not sell_rune:
+			self.log("get rune:%s" % rune)
+		return battle_end
+
+	def repeatDoRiftDungeonAndSellRune(self, rift_dungeon_id):
+		checkResult = True
+		while (checkResult):
+			if self.user['wizard_info']['wizard_energy'] < 8:
+				break
+			battle_end = self.doRiftDungeonAndSellRune(rift_dungeon_id)
+			if not battle_end:
+				checkResult = False
 
 	def repeatAreana(self):
 		if self.user['wizard_info']['arena_energy']>=1:
