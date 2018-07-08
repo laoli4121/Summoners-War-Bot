@@ -445,6 +445,77 @@ class API(object):
 	def parseBattleRiftResult(self,input,extra=''):
 		self.log('quest finished, rift:%s'%extra)
 
+	def rune_effect_type(id, mode=0):
+		"""mode 0 = rune optimizer, mode 1 = csv export"""
+		if mode != 0 and mode != 1:
+			raise ValueError('Should be 0 (optimizer) or 1 (csv)')
+		effect_type_map = {
+			0: ("",""),
+			1: ("HP flat", "HP +%s"),
+			2: ("HP%", "HP %s%%"),
+			3: ("ATK flat", "ATK +%s"),
+			4: ("ATK%", "ATK %s%%"),
+			5: ("DEF flat", "DEF +%s"),
+			6: ("DEF%", "DEF %s%%"),
+			# 7: "UNKNOWN",  # ?
+			8: ("SPD", "SPD +%s"),
+			9: ("CRate", "CRI Rate %s%%"),
+			10: ("CDmg", "CRI Dmg %s%%"),
+			11: ("RES", "Resistance %s%%"),
+			12: ("ACC", "Accuracy %s%%")
+		}
+		return effect_type_map[id][mode] if id in effect_type_map else "UNKNOWN"
+
+	def rune_effect(eff):
+		typ = eff[0]
+		value = eff[1]
+		flats = [1,3,5,8]
+		if len(eff) > 3:
+			if eff[3] != 0:
+				if typ in flats:
+					value = "%s -> +%s" % (value, str(int(value) + int(eff[3])))
+				else:
+					value = "%s%% -> %s" % (value, str(int(value) + int(eff[3])))
+		if typ == 0:
+			ret = ""
+		elif typ == 7 or typ > 12:
+			ret = "UNK %s %s" % (typ, value)
+		else:
+			ret = rune_effect_type(typ,1) % value
+		if len(eff) > 2:
+			if eff[2] != 0:
+				ret = "%s (Converted)" % ret
+		return ret
+
+	def rune_set_id(id):
+		name_map = {
+			1: "Energy",
+			2: "Guard",
+			3: "Swift",
+			4: "Blade",
+			5: "Rage",
+			6: "Focus",
+			7: "Endure",
+			8: "Fatal",
+			10: "Despair",
+			11: "Vampire",
+			13: "Violent",
+			14: "Nemesis",
+			15: "Will",
+			16: "Shield",
+			17: "Revenge",
+			18: "Destroy",
+			19: "Fight",
+			20: "Determination",
+			21: "Enhance",
+			22: "Accuracy",
+			23: "Tolerance",
+		}
+		if id in name_map:
+			return name_map[id]
+		else:
+			return "???"
+
 	def checkReward(self,input):
 		reward_rune = False
 		goSellRune = False
@@ -459,8 +530,8 @@ class API(object):
 					prefix_eff = input['reward']['crate']['rune']['prefix_eff']
 					sec_eff = input['reward']['crate']['rune']['sec_eff']
 					slot_no = input['reward']['crate']['rune']['slot_no']
-					if slot_no == 1 or slot_no == 3 or slot_no == 5:
-						if pri_eff == 1 or pri_eff == 3 or pri_eff == 5:
+					if slot_no == 2 or slot_no == 4 or slot_no == 6:
+						if pri_eff[0] == 1 or pri_eff[0] == 3 or pri_eff[0] == 5:
 							goSellRune = True
 					if rune_class <= 5:
 						if rune_rank <= 4:
@@ -578,6 +649,7 @@ class API(object):
 			battle_end = self.doDungeonAndSellRune(dungeon_id, stage_id)
 			if not battle_end:
 				checkResult = False
+		self.checkArena()
 
 	def doTower(self,floor_id,difficulty):
 		unit_id_list=[]
@@ -647,6 +719,7 @@ class API(object):
 			battle_end = self.doRiftDungeonAndSellRune(rift_dungeon_id)
 			if not battle_end:
 				checkResult = False
+		self.checkArena()
 
 	def repeatAreana(self):
 		if self.user['wizard_info']['arena_energy']>=1:
@@ -672,9 +745,13 @@ class API(object):
 						#	self.log('killed %s lvl'%(wizard['wizard_level']))
 						#	self.save('pvp:%s me:%s'%(wizard['wizard_level'],self.user['wizard_info']['wizard_level']),'arena.txt')
 				refresh=1
-		if hasattr(self,'IsBadBot') and self.user['wizard_info']['wizard_crystal']>=30 and self.user['wizard_info']['arena_energy']==0:
-			self.BuyShopItem('300001',0,0,0)
-		return self.repeatAreana()
+			return self.repeatAreana()
+		else:
+			if hasattr(self,'IsBadBot') and self.user['wizard_info']['wizard_crystal']>=30 and self.user['wizard_info']['arena_energy']==0:
+				self.BuyShopItem('300001',0,0,0)
+				return self.repeatAreana()
+			else:
+				return
 
 	def getAllMail(self):
 		mails=self.GetMailList()['mail_list']
