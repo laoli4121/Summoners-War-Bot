@@ -628,8 +628,7 @@ class API(object):
 
 #Get market list buy
 #1. all the legend-5 runes without flat primary value
-#2. light scroll
-#3. legend scroll
+#2. scrolls
 	def checkBlackMarket(self):
 		self.log("checking balck market...")
 		for building in self.user['building_list']:
@@ -644,10 +643,10 @@ class API(object):
 					buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'], item['item_master_id'], item['amount'])
 					if buy_item:
 						self.log("Buy rune: %s"%rune)
-			elif item['item_master_type'] == 9 and item['item_master_id'] == 10 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
+			elif item['buy_mana'] > 100000 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
 				buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'],item['item_master_id'], item['amount'])
 				if buy_item:
-					self.log("Buy light scroll")
+					self.log("Buy scroll")
 
 	def checkHarvest(self):
 		self.log("checking harvest...")
