@@ -569,7 +569,7 @@ class API(object):
 					print("Fix value; sell rune")
 					print("rune: %s"%self.map_rune(rune))
 					goSellRune = True
-			elif rune_class <= 5:
+			if rune_class <= 5:
 				if rune_rank <= 4:
 					goSellRune = True
 					print("lower value; sell rune")
