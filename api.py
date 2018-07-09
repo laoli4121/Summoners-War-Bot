@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 import io
+from collections import OrderedDict
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -244,6 +245,14 @@ class API(object):
 		data=OrderedDict([('command','GetArenaUnitList'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('opp_wizard_id',opp_wizard_id)])
 		return self.callAPI(self.c2_api,data)
 
+	def GetBlackMarketList(self,building_id):
+		data=OrderedDict([('command','GetBlackMarketList'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('building_id',building_id)])
+		return self.callAPI(self.c2_api,data)
+
+	def BuyBlackMarketItem(self, building_id, item_no, item_master_type, item_master_id, amount):
+		data = OrderedDict([('command', 'BuyBlackMarketItem'), ('wizard_id', self.wizard_id), ('session_key', self.getUID()),('proto_ver', self.proto_ver), ('infocsv', self.infocsv), ('channel_uid', self.uid),('ts_val', self.crypter.GetPlayerServerConnectElapsedTime()), ('building_id', building_id),('item_no', item_no),('item_master_type',item_master_type),('item_master_id',item_master_id),('amount',amount)])
+		return self.callAPI(self.c2_api, data)
+
 	def Harvest(self,building_id):
 		self.log('harvesting from:%s'%(building_id))
 		data=OrderedDict([('command','Harvest'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('building_id',building_id)])
@@ -445,7 +454,7 @@ class API(object):
 	def parseBattleRiftResult(self,input,extra=''):
 		self.log('quest finished, rift:%s'%extra)
 
-	def rune_effect_type(id, mode=0):
+	def rune_effect_type(self, id, mode=0):
 		"""mode 0 = rune optimizer, mode 1 = csv export"""
 		if mode != 0 and mode != 1:
 			raise ValueError('Should be 0 (optimizer) or 1 (csv)')
@@ -466,7 +475,7 @@ class API(object):
 		}
 		return effect_type_map[id][mode] if id in effect_type_map else "UNKNOWN"
 
-	def rune_effect(eff):
+	def rune_effect(self, eff):
 		typ = eff[0]
 		value = eff[1]
 		flats = [1,3,5,8]
@@ -481,13 +490,13 @@ class API(object):
 		elif typ == 7 or typ > 12:
 			ret = "UNK %s %s" % (typ, value)
 		else:
-			ret = rune_effect_type(typ,1) % value
+			ret = self.rune_effect_type(typ,1) % value
 		if len(eff) > 2:
 			if eff[2] != 0:
 				ret = "%s (Converted)" % ret
 		return ret
 
-	def rune_set_id(id):
+	def rune_set_id(self, id):
 		name_map = {
 			1: "Energy",
 			2: "Guard",
@@ -516,32 +525,63 @@ class API(object):
 		else:
 			return "???"
 
-	def checkReward(self,input):
+
+	def map_rune(self, rune):
+		rune_map = {
+			'slot': rune['slot_no'],
+			'rune_set': self.rune_set_id(rune['set_id']),
+			'rune_class': rune['class'],
+			'rune_rank': rune['rank'],
+			'pri_eff': self.rune_effect(rune['pri_eff']),
+			'pre_eff': self.rune_effect(rune['prefix_eff'])
+		}
+		rune_map = OrderedDict(rune_map)
+
+		for i in range(0, len(rune['sec_eff'])):
+			rune_map['sub' + str(i + 1)] = self.rune_effect(rune['sec_eff'][i])
+		return rune_map
+
+#Sell battle reward runes which's lower than class 6(except legend class 5)
+	def checkReward(self,input, rift_mode=False):
 		reward_rune = False
 		goSellRune = False
-		if 'reward' in input:
-			if 'crate' in input['reward']:
-				if 'rune' in input['reward']['crate']:
-					reward_rune = True
-					rune_id = input['reward']['crate']['rune']['rune_id']
-					rune_class = input['reward']['crate']['rune']['class']
-					rune_rank = input['reward']['crate']['rune']['rank']
-					pri_eff = input['reward']['crate']['rune']['pri_eff']
-					prefix_eff = input['reward']['crate']['rune']['prefix_eff']
-					sec_eff = input['reward']['crate']['rune']['sec_eff']
-					slot_no = input['reward']['crate']['rune']['slot_no']
-					if slot_no == 2 or slot_no == 4 or slot_no == 6:
-						if pri_eff[0] == 1 or pri_eff[0] == 3 or pri_eff[0] == 5:
-							goSellRune = True
-					if rune_class <= 5:
-						if rune_rank <= 4:
-							goSellRune = True
-					if goSellRune:
-						if not self.SellRune(rune_id):
-							self.log("sell rune failed")
-							return None
-					return reward_rune, goSellRune,  input['reward']['crate']['rune']
-		return reward_rune ,goSellRune ,[]
+		rune = {}
+		if rift_mode:
+			for item in input['item_list']:
+				if item['type'] == 8:
+					rune = item['info']
+		else:
+			if not 'reward' in input:
+				return reward_rune, goSellRune, []
+			if not 'crate' in input['reward']:
+				return reward_rune, goSellRune, []
+			if 'rune' in input['reward']['crate']:
+				rune = input['reward']['crate']['rune']
+		if rune:
+			reward_rune = True
+			rune_id = rune['rune_id']
+			rune_class = rune['class']
+			rune_rank = rune['rank']
+			pri_eff = rune['pri_eff']
+			slot_no = rune['slot_no']
+			if slot_no == 2 or slot_no == 4 or slot_no == 6:
+				if pri_eff[0] == 1 or pri_eff[0] == 3 or pri_eff[0] == 5:
+					print("Fix value; sell rune")
+					print("rune: %s"%self.map_rune(rune))
+					goSellRune = True
+			elif rune_class <= 5:
+				if rune_rank <= 4:
+					goSellRune = True
+					print("lower value; sell rune")
+					print("rune: %s"%self.map_rune(rune))
+			if goSellRune:
+				if not self.SellRune(rune_id):
+					self.log("sell rune failed")
+					return None
+			return reward_rune, goSellRune,  self.map_rune(rune)
+		else:
+			return reward_rune, goSellRune, []
+
 
 	def makeUnitList(self,old):
 		res=[]
@@ -579,11 +619,42 @@ class API(object):
 		battle_end=self.BattleScenarioResult(battle_key,opp_unit_status_list,self.makeUnitList(unit_id_list),{"island_id":1,"pos_x":14,"pos_y":24})
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s:%s'%(region_id,stage_no,difficulty))
+		self.checkReward(battle_end)
 		return battle_end
 
 	def removeAllObstacle(self):
 		for obstacle in self.user['obstacle_list']:
 			self.CleanObstacle(obstacle['obstacle_id'])
+
+#Get market list buy
+#1. all the legend-5 runes without flat primary value
+#2. light scroll
+#3. legend scroll
+	def checkBlackMarket(self):
+		self.log("checking balck market...")
+		for building in self.user['building_list']:
+			if building['building_master_id'] == 11:
+				building_id = building['building_id']
+		Market_item_list = self.GetBlackMarketList(building_id)
+		for item in Market_item_list['market_list']:
+			if 'runes' in item:
+				rune = item['runes'][0]
+				pri_eff = rune['pri_eff'][0]
+				if rune['class'] == 6 and rune['rank'] == 5 and pri_eff != 1 and pri_eff != 3 and pri_eff != 5 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
+					buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'], item['item_master_id'], item['amount'])
+					if buy_item:
+						self.log("Buy rune: %s"%rune)
+			elif item['item_master_type'] == 9 and item['item_master_id'] == 10 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
+				buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'],item['item_master_id'], item['amount'])
+				if buy_item:
+					self.log("Buy light scroll")
+
+	def checkHarvest(self):
+		self.log("checking harvest...")
+		for building in self.user['building_list']:
+			if 'harvest_max' in building:
+				building_id = building['building_id']
+				self.Harvest(building_id)
 
 	def doArena(self,opp_wizard_id):
 		unit_id_list=[]
@@ -637,11 +708,14 @@ class API(object):
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
 		rewardIsRune ,sell_rune , rune = self.checkReward(battle_end)
+		print("rune:%s"%rune)
 		if rewardIsRune and not sell_rune:
 			self.log("get rune:%s"%rune)
 		return battle_end
 
-	def repeatDoDungeonAndSellRune(self, dungeon_id, stage_id):
+	def repeatDoDungeonAndSellRune(self, dungeon_id, stage_id ):
+		self.checkBlackMarket()
+		self.checkHarvest()
 		checkResult = True
 		while(checkResult):
 			if self.user['wizard_info']['wizard_energy']<8:
@@ -706,12 +780,14 @@ class API(object):
 		battle_end = self.BattleRiftDungeonResult(battle_key, rift_dungeon_id)
 		if battle_end:
 			self.parseBattleRiftResult(battle_end, '%s'%(rift_dungeon_id))
-		rewardIsRune, sell_rune, rune = self.checkReward(battle_end)
+		rewardIsRune, sell_rune, rune = self.checkReward(battle_end, True)
 		if rewardIsRune and not sell_rune:
 			self.log("get rune:%s" % rune)
 		return battle_end
 
 	def repeatDoRiftDungeonAndSellRune(self, rift_dungeon_id):
+		self.checkBlackMarket()
+		self.checkHarvest()
 		checkResult = True
 		while (checkResult):
 			if self.user['wizard_info']['wizard_energy'] < 8:
@@ -752,6 +828,18 @@ class API(object):
 				return self.repeatAreana()
 			else:
 				return
+
+	def growUp(self):
+		self.checkBlackMarket()
+		self.checkHarvest()
+		checkResult = True
+		while (checkResult):
+			if self.user['wizard_info']['wizard_energy'] < 5:
+				break
+			battle_end = self.doMission(13 ,6 ,3 , True)
+			if not battle_end:
+				checkResult = False
+		self.checkArena()
 
 	def getAllMail(self):
 		mails=self.GetMailList()['mail_list']
