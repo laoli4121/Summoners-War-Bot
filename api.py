@@ -345,7 +345,7 @@ class API(object):
 		return self.callAPI(self.c2_api,data)
 
 	def UpgradeRune(self,rune_id,upgrade_curr,cash_used=0,stone_used=0):
-		data=([('command','UpgradeRune'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('rune_id',rune_id),('upgrade_curr',upgrade_curr),('cash_used',cash_used),('stone_used',stone_used)])
+		data=OrderedDict([('command','UpgradeRune'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('rune_id',rune_id),('upgrade_curr',upgrade_curr),('cash_used',cash_used),('stone_used',stone_used)])
 		return self.callAPI(self.c2_api,data)
 
 	def BuyShopItem(self,item_id,island_id,pos_x,pos_y):
@@ -527,7 +527,7 @@ class API(object):
 
 	def map_rune(self, rune):
 		rune_map = {
-			'rune_id': rune['rune_id']
+			'rune_id': rune['rune_id'],
 			'slot': rune['slot_no'],
 			'rune_set': self.rune_set_id(rune['set_id']),
 			'rune_class': rune['class'],
@@ -1115,6 +1115,25 @@ class API(object):
 		if done:
 			print(done)
 			self.UpdateAchievement(done)
+
+	def powerUpRune(self,rune_id, upgrade_curr, target_grade, min_mana=500000):
+		update_grade = upgrade_curr
+		start_mana = self.user['wizard_info']['wizard_mana']
+		update_rune = {}
+		self.log("upgrade_curr: %s"%upgrade_curr)
+		self.log("target_grade: %s"%target_grade)
+		while (update_grade < target_grade):
+			if self.user['wizard_info']['wizard_mana']< min_mana:
+				self.log("out of mana for upgrade!!")
+				continue
+			res = self.UpgradeRune(rune_id,update_grade)
+			if res:
+				update_rune = res['rune']
+				update_grade = update_rune['upgrade_curr']
+				if update_grade == 3 or update_grade ==6 or update_grade ==9 or update_grade ==12:
+					self.log("rune upgraded: %s"%self.map_rune(update_rune))
+		self.log("Total cost: %d"%(start_mana-self.user['wizard_info']['wizard_mana']))
+		self.log("Finished: %s"%self.map_rune(update_rune))
 
 	def powerMonster(self,end=0):
 		for unit in self.user['unit_list']:
