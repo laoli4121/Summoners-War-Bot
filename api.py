@@ -11,7 +11,6 @@ import sys
 import threading
 import time
 import io
-from collections import OrderedDict
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -318,7 +317,7 @@ class API(object):
 
 	def BattleRiftDungeonResult(self,battle_key,dungeon_id):
 		#TODO round_list
-		round_list=[[1, 218530], [2, 1254597], [1, 302374], [2, 804395], [1, 942529]]
+		round_list=[[1, 218530], [2, 1254597], [1, 302374], [2, 851345], [1, 942529]]
 		data=OrderedDict([('command','BattleRiftDungeonResult'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('battle_key',battle_key),('dungeon_id',dungeon_id),('battle_result',1),('round_list',round_list),('retry',0)])
 		return self.callAPI(self.c2_api,data)
 
@@ -528,6 +527,7 @@ class API(object):
 
 	def map_rune(self, rune):
 		rune_map = {
+			'rune_id': rune['rune_id']
 			'slot': rune['slot_no'],
 			'rune_set': self.rune_set_id(rune['set_id']),
 			'rune_class': rune['class'],
@@ -567,13 +567,11 @@ class API(object):
 			if slot_no == 2 or slot_no == 4 or slot_no == 6:
 				if pri_eff[0] == 1 or pri_eff[0] == 3 or pri_eff[0] == 5:
 					print("Fix value; sell rune")
-					print("rune: %s"%self.map_rune(rune))
 					goSellRune = True
 			if rune_class <= 5:
 				if rune_rank <= 4:
 					goSellRune = True
 					print("lower value; sell rune")
-					print("rune: %s"%self.map_rune(rune))
 			if goSellRune:
 				if not self.SellRune(rune_id):
 					self.log("sell rune failed")
@@ -707,7 +705,6 @@ class API(object):
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
 		rewardIsRune ,sell_rune , rune = self.checkReward(battle_end)
-		print("rune:%s"%rune)
 		if rewardIsRune and not sell_rune:
 			self.log("get rune:%s"%rune)
 		return battle_end
@@ -742,12 +739,18 @@ class API(object):
 		return battle_end
 
 	def doRiftDungeon(self, rift_dungeon_id):
+		#TODO make rift_dungeon_id_list
 		if rift_dungeon_id == "2001":
 			rift_unit_id_list = [{"unit_id":	4057074615,"slot_index":	1}, {"unit_id":	3645298776,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	5}, {"unit_id":	2866516866,"slot_index":	6}, {"unit_id":	2794249135,"slot_index":	7}, {"unit_id":	2849367222,"slot_index":	8}]
 		elif rift_dungeon_id == "3001":
-			rift_unit_id_list = [{"unit_id": 4046837916, "slot_index": 2}, {"unit_id": 3091048033, "slot_index": 3},{"unit_id": 3286663977, "slot_index": 4}, {"unit_id": 2857306418, "slot_index": 5},{"unit_id": 4960565324, "slot_index": 6}, {"unit_id": 3929035691, "slot_index": 7}]
-		else:
+			rift_unit_id_list = [{"unit_id": 4046837916, "slot_index": 1}, {"unit_id": 3091048033, "slot_index": 3},{"unit_id": 3286663977, "slot_index": 4}, {"unit_id": 2857306418, "slot_index": 5},{"unit_id": 4960565324, "slot_index": 6}, {"unit_id": 3929035691, "slot_index": 7}]
+		elif rift_dungeon_id == "1001":
 			rift_unit_id_list = [{"unit_id":	2995990516,"slot_index":	1}, {"unit_id":	3598700695,"slot_index":	2}, {"unit_id":	3952232439,"slot_index":	3}, {"unit_id":	4015394550,"slot_index":	6}, {"unit_id":	3571721433,"slot_index":	7}, {"unit_id":	2956011960,"slot_index":	8}]
+		elif rift_dungeon_id == "4001":
+			rift_unit_id_list = [{"unit_id":	5031592121,"slot_index":	1}, {"unit_id":	4057074615,"slot_index":	2}, {"unit_id":	4046837916,"slot_index":	3}, {"unit_id":	3319323376,"slot_index":	4}, {"unit_id":	3286663977,"slot_index":	5}, {"unit_id":	3929035691,"slot_index":	6}]
+		elif rift_dungeon_id == "5001":
+			rift_unit_id_list = [{"unit_id":	2866516866,"slot_index":	1}, {"unit_id":	3319323376,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	3}, {"unit_id":	5031592121,"slot_index":	4}, {"unit_id":	4057074615,"slot_index":	5}, {"unit_id":	3100967274,"slot_index":	6}]
+
 		if hasattr(self, 'refillEnergy') and self.user['wizard_info']['wizard_crystal'] >= 30 and \
 				self.user['wizard_info']['wizard_energy'] <= 8:
 			self.BuyShopItem('100001', 0, 0, 0)
@@ -763,11 +766,16 @@ class API(object):
 
 	def doRiftDungeonAndSellRune(self, rift_dungeon_id):
 		if rift_dungeon_id == "2001":
-			rift_unit_id_list = [{"unit_id": 4057074615, "slot_index": 1}, {"unit_id": 3645298776, "slot_index": 2},{"unit_id": 4960565324, "slot_index": 5}, {"unit_id": 2866516866, "slot_index": 6},{"unit_id": 2794249135, "slot_index": 7}, {"unit_id": 2849367222, "slot_index": 8}]
+			rift_unit_id_list = [{"unit_id":	4057074615,"slot_index":	1}, {"unit_id":	3645298776,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	5}, {"unit_id":	2866516866,"slot_index":	6}, {"unit_id":	2794249135,"slot_index":	7}, {"unit_id":	2849367222,"slot_index":	8}]
 		elif rift_dungeon_id == "3001":
-			rift_unit_id_list = [{"unit_id": 4046837916, "slot_index": 2}, {"unit_id": 3091048033, "slot_index": 3},{"unit_id": 3286663977, "slot_index": 4}, {"unit_id": 2857306418, "slot_index": 5},{"unit_id": 4960565324, "slot_index": 6}, {"unit_id": 3929035691, "slot_index": 7}]
-		else:
-			rift_unit_id_list = [{"unit_id": 2995990516, "slot_index": 1}, {"unit_id": 3598700695, "slot_index": 2},{"unit_id": 3952232439, "slot_index": 3}, {"unit_id": 4015394550, "slot_index": 6},{"unit_id": 3571721433, "slot_index": 7}, {"unit_id": 2956011960, "slot_index": 8}]
+			rift_unit_id_list = [{"unit_id": 4046837916, "slot_index": 1}, {"unit_id": 3091048033, "slot_index": 3},{"unit_id": 3286663977, "slot_index": 4}, {"unit_id": 2857306418, "slot_index": 5},{"unit_id": 4960565324, "slot_index": 6}, {"unit_id": 3929035691, "slot_index": 7}]
+		elif rift_dungeon_id == "1001":
+			rift_unit_id_list = [{"unit_id":	2995990516,"slot_index":	1}, {"unit_id":	3598700695,"slot_index":	2}, {"unit_id":	3952232439,"slot_index":	3}, {"unit_id":	4015394550,"slot_index":	6}, {"unit_id":	3571721433,"slot_index":	7}, {"unit_id":	2956011960,"slot_index":	8}]
+		elif rift_dungeon_id == "4001":
+			rift_unit_id_list = [{"unit_id":	5031592121,"slot_index":	1}, {"unit_id":	4057074615,"slot_index":	2}, {"unit_id":	4046837916,"slot_index":	3}, {"unit_id":	3319323376,"slot_index":	4}, {"unit_id":	3286663977,"slot_index":	5}, {"unit_id":	3929035691,"slot_index":	6}]
+		else :
+			rift_unit_id_list = [{"unit_id":	2866516866,"slot_index":	1}, {"unit_id":	3319323376,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	3}, {"unit_id":	5031592121,"slot_index":	4}, {"unit_id":	4057074615,"slot_index":	5}, {"unit_id":	3100967274,"slot_index":	6}]
+
 		if hasattr(self, 'refillEnergy') and self.user['wizard_info']['wizard_crystal'] >= 30 and \
 			self.user['wizard_info']['wizard_energy'] <= 8:
 			self.BuyShopItem('100001', 0, 0, 0)
@@ -1097,6 +1105,16 @@ class API(object):
 		for i in range(1,20):
 			done.append({"ach_id":i,"cond_id":1,"current":10})
 		self.UpdateAchievement(done)
+
+	def completeAchivment(self):
+		done=[]
+		achi_list = self.user['quest_active']
+		for achi in achi_list:
+			if achi['is_completed'] == 0:
+				done.append({"ach_id":achi['quest_id'], "cond_id":1, "current":achi['conditions'][0][1]})
+		if done:
+			print(done)
+			self.UpdateAchievement(done)
 
 	def powerMonster(self,end=0):
 		for unit in self.user['unit_list']:
