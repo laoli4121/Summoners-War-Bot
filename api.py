@@ -327,6 +327,13 @@ class API(object):
 				building_id=building['building_id']
 		self.SummonUnit(building_id,mode,[{"island_id":1,"pos_x":7,"pos_y":7,"unit_master_id":10602}])
 
+	def SummonLight(self,mode):
+		for building in self.user['building_list']:
+			if building['building_master_id'] ==2:
+				building_id=building['building_id']
+		res = self.SummonUnit(building_id,mode,[{"island_id":1,"pos_x":7,"pos_y":7,"unit_master_id":0}])
+		return res['unit_list']['class'], res['unit_list']['unit_master_id']
+
 	def useAllScrolls(self):
 		for scroll in self.user['inventory_info']:
 			if scroll['item_master_type']==9 and scroll['item_quantity']>=1:
@@ -1106,6 +1113,9 @@ class API(object):
 			done.append({"ach_id":i,"cond_id":1,"current":10})
 		self.UpdateAchievement(done)
 
+#*************************************
+#Use this function will be banished!!!
+
 	def completeAchivment(self):
 		done=[]
 		achi_list = self.user['quest_active']
@@ -1115,6 +1125,8 @@ class API(object):
 		if done:
 			print(done)
 			self.UpdateAchievement(done)
+
+# *************************************
 
 	def powerUpRune(self,rune_id, upgrade_curr, target_grade, min_mana=500000):
 		update_grade = upgrade_curr
@@ -1183,10 +1195,10 @@ class API(object):
 		if hasattr(self,'user'):
 			if self.user['wizard_info']['wizard_mana']<>13000:
 				return
-		self.getServerStatus()
-		self.getVersionInfo()
-		self.CheckLoginBlock()
-		self.login()#1
+		# self.getServerStatus()
+		# self.getVersionInfo()
+		# self.CheckLoginBlock()
+		# self.login()#1
 		self.GetDailyQuests()#2
 		self.GetMiscReward()#3
 		self.GetMailList()#4
@@ -1263,6 +1275,199 @@ class API(object):
 		self.UpdateEventStatus(2)
 		self.UpdateAchievement([{"ach_id":6,"cond_id":1,"current":1},{"ach_id":6,"cond_id":2,"current":1},{"ach_id":6,"cond_id":3,"current":1}])
 		self.UpdateAchievement([{"ach_id":263,"cond_id":1,"current":1}])
+
+	def makeList(self, achi_id, cond_id, curr):
+		list = []
+		list.append({"ach_id":achi_id, "cond_id":cond_id, "current":curr})
+		return list
+
+	def auto_run(self):
+		quest1 = [{
+			"quest_id":	177
+		}, {
+			"quest_id":	178
+		}, {
+			"quest_id":	179
+		}, {
+			"quest_id":	299
+		}, {
+			"quest_id":	300
+		}, {
+			"quest_id":	303
+		}, {
+			"quest_id":	304
+		}, {
+			"quest_id":	305
+		}]
+		# self.completeTutorial()
+		# self.login()
+		# self.ActivateQuests(quest1)
+		# self.ReceiveDailyRewardSpecial()
+		# self.receiveDailyRewardInactive()
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateAchievement(self.makeList(300,1,1))
+		# self.UpdateAchievement(self.makeList(177,1,1))
+		# self.UpdateAchievement(self.makeList(303,1,1))
+		# self.UpdateAchievement(self.makeList(299,1,1))
+		# self.UpdateAchievement(self.makeList(304, 1, 1))
+		# self.UpdateAchievement(self.makeList(179, 1, 1))
+		# self.UpdateAchievement(self.makeList(178, 1, 1))
+		# self.UpdateAchievement(self.makeList(305, 1, 1))
+		# self.UpdateEventStatus(50020)
+		# print("finish tutorial!")
+		# self.completeRegion(1,1,1)
+		# self.UpdateAchievement(self.makeList(263,1,7))
+		# self.UpdateEventStatus(5)
+		# self.UpdateEventStatus(60018)
+		# print("finish Region 1!")
+		# self.completeRegion(2,1,0)
+		# self.UpdateEventStatus(509)
+		# self.UpdateEventStatus(6)
+		# self.UpdateEventStatus(510)
+		# self.UpdateEventStatus(511)
+		# self.UpdateEventStatus(506)
+		# self.UpdateEventStatus(531)
+		# self.UpdateEventStatus(508)
+		# self.UpdateEventStatus(507)
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateAchievement(self.makeList(257,1,7))
+		# self.UpdateEventStatus(17)
+		# print("finish Region 2!")
+		# self.completeRegion(3,1,0)
+		# self.UpdateEventStatus(540)
+		# self.UpdateEventStatus(18)
+		# self.UpdateEventStatus(541)
+		# self.UpdateEventStatus(544)
+		# self.UpdateEventStatus(546)
+		# self.UpdateEventStatus(545)
+		# self.UpdateEventStatus(543)
+		# self.UpdateEventStatus(542)
+		# self.UpdateAchievement(self.makeList(264,1,7))
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateEventStatus(20001)
+		# self.UpdateEventStatus(8)
+		# self.UpdateEventStatus(50029)
+		# print("finish Region 3!")
+		# self.completeRegion(4,1,0)
+		# self.UpdateAchievement(self.makeList(265,1,7))
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateEventStatus(10)
+		# self.UpdateEventStatus(518)
+		# self.UpdateEventStatus(533)
+		# self.UpdateEventStatus(523)
+		# self.UpdateEventStatus(520)
+		# self.UpdateEventStatus(522)
+		# self.UpdateEventStatus(521)
+		# self.UpdateEventStatus(12)
+		# print("finish Region 4!")
+		# self.completeRegion(5,1,0)
+		# self.UpdateAchievement(self.makeList(266,1,7))
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateEventStatus(13)
+		# self.UpdateEventStatus(19)
+		# print("finish Region 5!")
+		# self.completeRegion(6,1,0)
+		# self.UpdateEventStatus(550)
+		# self.UpdateEventStatus(551)
+		# self.UpdateEventStatus(549)
+		# self.UpdateEventStatus(20)
+		# self.UpdateEventStatus(548)
+		# self.UpdateEventStatus(547)
+		# self.UpdateEventStatus(552)
+		# self.UpdateEventStatus(553)
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateAchievement(self.makeList(267,1,7))
+		# self.UpdateEventStatus(21)
+		# self.UpdateEventStatus(14)
+		# print("finish Region 6!")
+		# self.CheckDailyReward()
+		# self.getAllMail()
+		# self.completeDaily()
+		# self.completeRegion(7,1,0)
+		# self.UpdateEventStatus(502)
+		# self.UpdateEventStatus(503)
+		# self.UpdateEventStatus(501)
+		# self.UpdateEventStatus(504)
+		# self.UpdateEventStatus(530)
+		# self.UpdateEventStatus(505)
+		# self.UpdateEventStatus(512)
+		# self.UpdateEventStatus(514)
+		# self.UpdateEventStatus(3)
+		# self.UpdateEventStatus(513)
+		# self.UpdateEventStatus(516)
+		# self.UpdateEventStatus(515)
+		# self.UpdateEventStatus(532)
+		# self.UpdateEventStatus(9)
+		# self.UpdateEventStatus(517)
+		# self.UpdateEventStatus(525)
+		# self.UpdateEventStatus(519)
+		# self.UpdateEventStatus(524)
+		# self.UpdateEventStatus(526)
+		# self.UpdateEventStatus(528)
+		# self.UpdateEventStatus(534)
+		# self.UpdateEventStatus(526)
+		# self.UpdateEventStatus(525)
+		# self.UpdateEventStatus(528)
+		# self.UpdateEventStatus(529)
+		# self.UpdateEventStatus(527)
+		# self.UpdateEventStatus(15)
+		# self.UpdateEventStatus(524)
+		# self.UpdateAchievement(self.makeList(268,1,7))
+		# self.getUnitUpgradeRewardInfo()
+		# self.UpdateAchievement(70005)
+		# self.UpdateAchievement(80001)
+		# self.UpdateEventStatus(22)
+		# print("finish Region 7!")
+		# self.completeRegion(8,1,0)
+		# self.UpdateEventStatus(554)
+		# self.UpdateEventStatus(558)
+		# self.UpdateEventStatus(556)
+		# self.UpdateEventStatus(555)
+		# self.UpdateEventStatus(557)
+		# self.UpdateEventStatus(23)
+		# self.UpdateEventStatus(559)
+		# self.UpdateEventStatus(560)
+		# self.UpdateAchievement(self.makeList(269,1,7))
+		# self.UpdateEventStatus(24)
+		# print("finish Region 8!")
+		# self.completeRegion(9,1,0)
+		# self.UpdateEventStatus(564)
+		# self.UpdateEventStatus(565)
+		# self.UpdateEventStatus(562)
+		# self.UpdateEventStatus(563)
+		# self.UpdateEventStatus(561)
+		# self.UpdateEventStatus(25)
+		# self.UpdateEventStatus(567)
+		# self.UpdateEventStatus(566)
+		# self.UpdateEventStatus(4)
+		# self.UpdateEventStatus(10001)
+		# print("finish Region 9!")
+		# self.UpdateEventStatus(26)
+		# self.UpdateEventStatus(27)
+		# self.getAllMail()
+		# mon_class, mon_id = self.SummonLight(7)
+		# print("class: %s, mon_id:%s"%(mon_class,mon_id))
+		self.doDungeonAndSellRune(8001,1)
+		self.UpdateAchievement(self.makeList(203,1,1))
+		self.doDungeonAndSellRune(8001, 2)
+		self.doDungeonAndSellRune(8001, 3)
+		self.doDungeonAndSellRune(8001, 4)
+		self.UpdateAchievement(self.makeList(204, 1, 1))
+		self.doDungeonAndSellRune(8001, 5)
+		self.doDungeonAndSellRune(8001, 6)
+		#================================
+		# self.doDungeonAndSellRune(8001, 7)
+		# self.UpdateAchievement(self.makeList(205, 1, 1))
+		# self.doDungeonAndSellRune(8001, 8)
+		# self.doDungeonAndSellRune(8001, 9)
+		# self.doDungeonAndSellRune(8001, 10)
+		# self.UpdateAchievement(self.makeList(206, 1, 1))
+		# self.ClaimAchievementReward(206)
+		# mon_class, mon_id = self.SummonLight(7)
+		# print("class: %s, mon_id:%s"%(mon_class,mon_id))
+
+
+
 
 if __name__ == "__main__":
 	uid,did=QPYOU().createNew()
