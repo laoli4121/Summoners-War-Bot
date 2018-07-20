@@ -837,6 +837,7 @@ class API(object):
 						#	self.log('killed %s lvl'%(wizard['wizard_level']))
 						#	self.save('pvp:%s me:%s'%(wizard['wizard_level'],self.user['wizard_info']['wizard_level']),'arena.txt')
 				refresh=1
+			time.sleep(3)
 			return self.repeatAreana()
 		else:
 			if hasattr(self,'IsBadBot') and self.user['wizard_info']['wizard_crystal']>=30 and self.user['wizard_info']['arena_energy']==0:
@@ -1472,6 +1473,8 @@ class API(object):
 		self.UpdateEventStatus(20002)
 		self.doDungeonAndSellRune(8001, 8)
 		self.doDungeonAndSellRune(8001, 9)
+		self.doDungeonAndSellRune(8001,10)
+		self.UpdateAchievement(self.makeMultiList(3,[46,1,1,49,1,2,206,1,1]))
 		exit(1)
 		self.doDungeonAndSellRune(9001, 1)
 		self.UpdateAchievement(self.makeList(227, 1, 1))
