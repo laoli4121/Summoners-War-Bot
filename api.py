@@ -98,7 +98,7 @@ class API(object):
 				if rj['ret_code']<>0:
 					self.log('failed to send data for %s'%(rj['command']))
 					return None
-				#self.log('ret_code:%s command:%s'%(rj['ret_code'],rj['command']))
+			#self.log('ret_code:%s command:%s'%(rj['ret_code'],rj['command']))
 			return rj
 		except:
 			return self.callAPI(path,data,True)
@@ -308,7 +308,7 @@ class API(object):
 		return self.callAPI(self.c2_api,data)
 
 	def BattleDungeonResult(self,battle_key,dungeon_id,stage_id,unit_id_list,opp_unit_status_list):
-		data=OrderedDict([('command','BattleDungeonResult'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('battle_key',battle_key),('dungeon_id',dungeon_id),('stage_id',stage_id),('win_lose',1),('unit_id_list',unit_id_list),('opp_unit_status_list',opp_unit_status_list),('retry',0)])
+		data=OrderedDict([('command','BattleDungeonResult'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('battle_key',battle_key),('dungeon_id',dungeon_id),('stage_id',stage_id),('win_lose',1),('unit_id_list',unit_id_list),('opp_unit_status_list',opp_unit_status_list), ('clear_time',random.randint(120000,180000)),('retry',0)])
 		return self.callAPI(self.c2_api,data)
 
 	def BattleTrialTowerResult_v2(self,battle_key,difficulty,floor_id,unit_id_list,opp_unit_status_list):
@@ -548,7 +548,7 @@ class API(object):
 			rune_map['sub' + str(i + 1)] = self.rune_effect(rune['sec_eff'][i])
 		return rune_map
 
-#Sell battle reward runes which's lower than class 6(except legend class 5)
+	#Sell battle reward runes which's lower than class 6(except legend class 5)
 	def checkReward(self,input, rift_mode=False):
 		reward_rune = False
 		goSellRune = False
@@ -633,9 +633,9 @@ class API(object):
 		for obstacle in self.user['obstacle_list']:
 			self.CleanObstacle(obstacle['obstacle_id'])
 
-#Get market list buy
-#1. all the legend-5 runes without flat primary value
-#2. scrolls
+	#Get market list buy
+	#1. all the legend-5 runes without flat primary value
+	#2. scrolls
 	def checkBlackMarket(self):
 		self.log("checking balck market...")
 		for building in self.user['building_list']:
@@ -677,8 +677,8 @@ class API(object):
 			self.parseBattleResult(battle_end,opp_wizard_id)
 		return battle_end
 
-#Dungeon_id: 8001 for Giant, 9001 for Dragon, 6001 for Lich
-	def doDungeon(self,dungeon_id,stage_id):
+	#Dungeon_id: 8001 for Giant, 9001 for Dragon, 6001 for Lich
+	def doDungeon(self,dungeon_id,stage_id, forbot=0):
 		unit_id_list=[]
 		for unit in self.user['defense_unit_list']:
 			if len(unit_id_list)<5:
@@ -691,12 +691,14 @@ class API(object):
 			self.log('dont have battle data')
 			return
 		battle_key,opp_unit_status_list=self.parseBattleStart(battle_start,2)
+		if forbot != 0:
+			time.sleep(randint(180,240))
 		battle_end=self.BattleDungeonResult(battle_key,dungeon_id,stage_id,unit_id_list,opp_unit_status_list)
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
 		return battle_end
 
-	def doDungeonAndSellRune(self,dungeon_id,stage_id):
+	def doDungeonAndSellRune(self,dungeon_id,stage_id,forbot=0):
 		unit_id_list=[]
 		rewardIsRune = False
 		sell_rune = False
@@ -710,6 +712,8 @@ class API(object):
 			self.log('dont have battle data')
 			return
 		battle_key,opp_unit_status_list=self.parseBattleStart(battle_start,2)
+		if forbot != 0:
+			time.sleep(randint(180,240))
 		battle_end=self.BattleDungeonResult(battle_key,dungeon_id,stage_id,unit_id_list,opp_unit_status_list)
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
@@ -786,7 +790,7 @@ class API(object):
 			rift_unit_id_list = [{"unit_id":	2866516866,"slot_index":	1}, {"unit_id":	3319323376,"slot_index":	2}, {"unit_id":	4960565324,"slot_index":	3}, {"unit_id":	5031592121,"slot_index":	4}, {"unit_id":	4057074615,"slot_index":	5}, {"unit_id":	3100967274,"slot_index":	6}]
 
 		if hasattr(self, 'refillEnergy') and self.user['wizard_info']['wizard_crystal'] >= 30 and \
-			self.user['wizard_info']['wizard_energy'] <= 8:
+				self.user['wizard_info']['wizard_energy'] <= 8:
 			self.BuyShopItem('100001', 0, 0, 0)
 		battle_start = self.BattleRiftDungeonStart(rift_dungeon_id, rift_unit_id_list)
 		if not battle_start:
@@ -829,13 +833,17 @@ class API(object):
 						limit=15
 					elif self.user['wizard_info']['wizard_level']>10 and self.user['wizard_info']['wizard_level']<=20:
 						limit=22
+					elif self.user['wizard_info']['wizard_level']>20 and self.user['wizard_info']['wizard_level']<=30:
+						limit=29
+					elif self.user['wizard_info']['wizard_level']>30 and self.user['wizard_info']['wizard_level']<=40:
+						limit=40
 					if wizard['defeat']==0 and wizard['wizard_level']<=limit:
 						if not self.doArena(wizard['wizard_id']):
 							hasVic=False
 							break
-						#else:
-						#	self.log('killed %s lvl'%(wizard['wizard_level']))
-						#	self.save('pvp:%s me:%s'%(wizard['wizard_level'],self.user['wizard_info']['wizard_level']),'arena.txt')
+					#else:
+					#	self.log('killed %s lvl'%(wizard['wizard_level']))
+					#	self.save('pvp:%s me:%s'%(wizard['wizard_level'],self.user['wizard_info']['wizard_level']),'arena.txt')
 				refresh=1
 			return self.repeatAreana()
 		else:
@@ -1087,7 +1095,7 @@ class API(object):
 			if not self.doDungeon(dungeon_id,i+1):
 				break
 			self.checkArena()
-#difficulty: 1 for easy, 2 for hard
+	#difficulty: 1 for easy, 2 for hard
 	def completeTower(self,difficulty,skip=0):
 		for i in range(100):
 			if (i+1)<=skip:
@@ -1119,8 +1127,8 @@ class API(object):
 			done.append({"ach_id":i,"cond_id":1,"current":10})
 		self.UpdateAchievement(done)
 
-#*************************************
-#Use this function will be banished!!!
+	#*************************************
+	#Use this function will be banished!!!
 
 	def completeAchivment(self):
 		done=[]
@@ -1132,7 +1140,7 @@ class API(object):
 			print(done)
 			self.UpdateAchievement(done)
 
-# *************************************
+	# *************************************
 
 	def powerUpRune(self,rune_id, upgrade_curr, target_grade, min_mana=500000):
 		update_grade = upgrade_curr
@@ -1289,8 +1297,8 @@ class API(object):
 
 	def makeMultiList(self, quantity, list):
 		final_list = []
-		for i in (0,quantity,1):
-			final_list.append({"ach_id":list[i], "cond_id":list[i+1], "current":list[i+2]})
+		for i in range(0,quantity,1):
+			final_list.append({"ach_id":list[(3*i)], "cond_id":list[(3*i)+1], "current":list[(3*i)+2]})
 		return final_list
 
 	def auto_run(self):
@@ -1426,8 +1434,8 @@ class API(object):
 		self.UpdateEventStatus(524)
 		self.UpdateAchievement(self.makeList(268,1,7))
 		self.getUnitUpgradeRewardInfo()
-		self.UpdateAchievement(70005)
-		self.UpdateAchievement(80001)
+		self.UpdateEventStatus(70005)
+		self.UpdateEventStatus(80001)
 		self.UpdateEventStatus(22)
 		print("finish Region 7!")
 		self.completeRegion(8,1,0)
@@ -1459,6 +1467,10 @@ class API(object):
 		self.getAllMail()
 		mon_class, mon_id = self.SummonLight(7)
 		print("class: %s, mon_id:%s"%(mon_class,mon_id))
+		self.ClaimAchievementReward(265)
+		self.getAllMail()
+		exit(1)
+		self.ClaimAchievementReward(269)
 		self.doDungeonAndSellRune(8001, 1)
 		self.UpdateAchievement(self.makeList(203,1,1))
 		self.doDungeonAndSellRune(8001, 2)
@@ -1467,12 +1479,13 @@ class API(object):
 		self.UpdateAchievement(self.makeList(204, 1, 1))
 		self.doDungeonAndSellRune(8001, 5)
 		self.doDungeonAndSellRune(8001, 6)
-		self.doDungeonAndSellRune(8001, 7)
+		self.doDungeonAndSellRune(8001, 7, 1)
 		self.UpdateAchievement(self.makeMultiList(2,[49,1,1,205,1,1]))
+		self.ClaimAchievementReward(205)
+		exit(1)
 		self.UpdateEventStatus(20002)
 		self.doDungeonAndSellRune(8001, 8)
 		self.doDungeonAndSellRune(8001, 9)
-		exit(1)
 		self.doDungeonAndSellRune(9001, 1)
 		self.UpdateAchievement(self.makeList(227, 1, 1))
 		self.doDungeonAndSellRune(9001, 2)
@@ -1489,12 +1502,12 @@ class API(object):
 		self.UpdateAchievement(self.makeList(259, 1, 1))
 		self.doDungeonAndSellRune(6001, 5)
 		self.doDungeonAndSellRune(6001, 6)
-		#================================
-		# self.doDungeonAndSellRune(8001, 10)
-		# self.UpdateAchievement(self.makeList(206, 1, 1))
-		# self.ClaimAchievementReward(206)
-		# mon_class, mon_id = self.SummonLight(7)
-		# print("class: %s, mon_id:%s"%(mon_class,mon_id))
+	#================================
+	# self.doDungeonAndSellRune(8001, 10)
+	# self.UpdateAchievement(self.makeList(206, 1, 1))
+	# self.ClaimAchievementReward(206)
+	# mon_class, mon_id = self.SummonLight(7)
+	# print("class: %s, mon_id:%s"%(mon_class,mon_id))
 
 
 
@@ -1502,10 +1515,10 @@ class API(object):
 if __name__ == "__main__":
 	uid,did=QPYOU().createNew()
 	a=API(uid,did)
-	a.setRegion('eu')
+	a.setRegion('sea')
 	a.setIDFA(Tools().rndDeviceId())
-	a.completeTutorial()
 	#a.getServerStatus()
 	#a.getVersionInfo()
 	#a.CheckLoginBlock()
-	#a.login()
+	a.login()
+	a.auto_run()
