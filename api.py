@@ -24,8 +24,8 @@ class API(object):
 		#if 'Admin-PC' == socket.gethostname():
 		#	self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11170
-		self.app_version='4.0.0'
+		self.proto_ver=11180
+		self.app_version='4.0.1'
 		self.c2_api='http://summonerswar-%s.qpyou.cn/api/gateway_c2.php'
 		self.uid=int(uid)
 		self.did=int(did)
@@ -637,23 +637,27 @@ class API(object):
 	#1. all the legend-5 runes without flat primary value
 	#2. scrolls
 	def checkBlackMarket(self):
+		building_id = ""
 		self.log("checking balck market...")
 		for building in self.user['building_list']:
 			if building['building_master_id'] == 11:
 				building_id = building['building_id']
-		Market_item_list = self.GetBlackMarketList(building_id)
-		for item in Market_item_list['market_list']:
-			if 'runes' in item:
-				rune = item['runes'][0]
-				pri_eff = rune['pri_eff'][0]
-				if rune['class'] == 6 and rune['rank'] == 5 and pri_eff != 1 and pri_eff != 3 and pri_eff != 5 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
-					buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'], item['item_master_id'], item['amount'])
+		if building_id:
+			Market_item_list = self.GetBlackMarketList(building_id)
+			for item in Market_item_list['market_list']:
+				if 'runes' in item:
+					rune = item['runes'][0]
+					pri_eff = rune['pri_eff'][0]
+					if rune['class'] == 6 and rune['rank'] == 5 and pri_eff != 1 and pri_eff != 3 and pri_eff != 5 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
+						buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'], item['item_master_id'], item['amount'])
+						if buy_item:
+							self.log("Buy rune: %s"%rune)
+				elif item['buy_mana'] > 100000 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
+					buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'],item['item_master_id'], item['amount'])
 					if buy_item:
-						self.log("Buy rune: %s"%rune)
-			elif item['buy_mana'] > 100000 and self.user['wizard_info']['wizard_mana'] > item['buy_mana']:
-				buy_item = self.BuyBlackMarketItem(building_id, item['item_no'], item['item_master_type'],item['item_master_id'], item['amount'])
-				if buy_item:
-					self.log("Buy scroll")
+						self.log("Buy scroll")
+		else:
+			self.log("no market building")
 
 	def checkHarvest(self):
 		self.log("checking harvest...")
@@ -1467,9 +1471,9 @@ class API(object):
 		self.getAllMail()
 		mon_class, mon_id = self.SummonLight(7)
 		print("class: %s, mon_id:%s"%(mon_class,mon_id))
+		exit(1)
 		self.ClaimAchievementReward(265)
 		self.getAllMail()
-		exit(1)
 		self.ClaimAchievementReward(269)
 		self.doDungeonAndSellRune(8001, 1)
 		self.UpdateAchievement(self.makeList(203,1,1))
