@@ -93,6 +93,12 @@ class QPYOU(object):
 			exit(1)
 		self.guest_uid=res['guest_uid']
 		return res
+
+	def bind(self, guest_uid, hive_uid):
+		res = json.loads(self.s.post('https://hub.qpyou.cn/guest/bind/%s/%s' % (guest_uid, hive_uid),
+									 data=self.p1 % (self.hive_country)).content)
+		self.guest_id = None
+		return res
 	
 	def auth(self):
 		return json.loads(self.s.post('https://api.qpyou.cn/guest/auth',data=self.p2%(self.guest_uid)).content)
@@ -150,7 +156,7 @@ class QPYOU(object):
 		return _uid,_did,sessionkey
 
 	def createNew(self):
-		self.s.cookies.update({'advertising_id':Tools().rndDeviceId(),'appid':'com.com2us.smon.normal.freefull.apple.kr.ios.universal','device':'iPad5,4','did':str(random.randint(200000000,300000000)) if not self.did else str(self.did),'native_version':'Hub v.2.6.4','osversion':'10.2','platform':'ios','vendor_id':Tools().rndDeviceId()})
+		self.s.cookies.update({'advertising_id':Tools().rndDeviceId(),'appid':'com.com2us.smon.normal.freefull.apple.kr.ios.universal','device':'SM-G955F','did':str(random.randint(200000000,300000000)) if not self.did else str(self.did),'native_version':'Hive+v.2.6.7','osversion':'7.0','platform':'android','vendor_id':Tools().rndDeviceId()})
 		self.registered()
 		res=self.create()
 		self.auth()

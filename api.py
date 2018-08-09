@@ -24,8 +24,8 @@ class API(object):
 		#if 'Admin-PC' == socket.gethostname():
 		#	self.s.proxies.update({'http': 'http://127.0.0.1:8888','https': 'https://127.0.0.1:8888',})
 		self.game_index=2623
-		self.proto_ver=11180
-		self.app_version='4.0.1'
+		self.proto_ver=11190
+		self.app_version='4.0.2'
 		self.c2_api='http://summonerswar-%s.qpyou.cn/api/gateway_c2.php'
 		self.uid=int(uid)
 		self.did=int(did)
@@ -1404,8 +1404,6 @@ class API(object):
 		self.UpdateEventStatus(21)
 		self.UpdateEventStatus(14)
 		print("finish Region 6!")
-		self.CheckDailyReward()
-		self.getAllMail()
 		self.completeDaily()
 		self.completeRegion(7,1,0)
 		self.UpdateEventStatus(502)
@@ -1442,6 +1440,8 @@ class API(object):
 		self.UpdateEventStatus(80001)
 		self.UpdateEventStatus(22)
 		print("finish Region 7!")
+		self.CheckDailyReward()
+		self.getAllMail()
 		self.completeRegion(8,1,0)
 		self.UpdateEventStatus(554)
 		self.UpdateEventStatus(558)
@@ -1471,6 +1471,22 @@ class API(object):
 		self.getAllMail()
 		mon_class, mon_id = self.SummonLight(7)
 		print("class: %s, mon_id:%s"%(mon_class,mon_id))
+		return mon_class, mon_id
+		exit(1)
+		time.sleep(5)
+		self.completeRegion(10,1,0)
+		self.UpdateEventStatus(28)
+		self.UpdateEventStatus(574)
+		self.UpdateEventStatus(570)
+		self.UpdateEventStatus(571)
+		self.UpdateEventStatus(572)
+		self.UpdateEventStatus(569)
+		self.UpdateEventStatus(573)
+		self.UpdateEventStatus(568)
+		self.UpdateAchievement(self.makeList(270,1,7))
+		self.UpdateEventStatus(50056)
+		self.UpdateAchievement(self.makeList(234,1,1))
+		print("finish Region 10!")
 		exit(1)
 		self.ClaimAchievementReward(265)
 		self.getAllMail()
@@ -1484,7 +1500,7 @@ class API(object):
 		self.doDungeonAndSellRune(8001, 5)
 		self.doDungeonAndSellRune(8001, 6)
 		self.doDungeonAndSellRune(8001, 7, 1)
-		self.UpdateAchievement(self.makeMultiList(2,[49,1,1,205,1,1]))
+		self.UpdateAchievement(self.makeMultiList(3,[46,1,1,49,1,1,205,1,1]))
 		self.ClaimAchievementReward(205)
 		exit(1)
 		self.UpdateEventStatus(20002)
