@@ -3,13 +3,10 @@ from qpyou import QPYOU
 from tools import Tools
 
 
-my_email='smwpython+013@gmail.com' #Light Dice and 8001,6
-my_hivelogin='smw00013'
-my_password='smw12345'
 
-# my_email='smwpython+017@gmail.com'
-# my_hivelogin='smw00017'
-# my_password='smw12345'
+my_email='smwpython+014@gmail.com'
+my_hivelogin='smw00014'
+my_password='smw12345'
 
 uid,did,sessionkey=QPYOU('542057052').hiveLogin(my_hivelogin,my_password) #mydid
 a=API(uid,did,my_hivelogin,my_email,sessionkey)
@@ -19,9 +16,10 @@ a.getServerStatus()
 a.getVersionInfo()
 a.CheckLoginBlock()
 a.login()
-a.setCanArena()
-a.completeDaily()
-a.repeatDoDungeonAndSellRune(8001,10)
+
+# a.completeDaily()
+a.repeatDoDungeonAndSellRune(8001,9)
+
 # a.setCanArena()
 # a.completeDaily()
 # a.completeTutorial()

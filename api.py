@@ -155,6 +155,10 @@ class API(object):
 		data=self.base_data('GetArenaLog',2)
 		return self.callAPI(self.c2_api,data)
 
+	def GetDungeonList(self):
+		data=self.base_data('GetDungeonList',2)
+		return self.callAPI(self.c2_api,data)
+
 	def ReceiveDailyRewardSpecial(self):
 		data=self.base_data('ReceiveDailyRewardSpecial',2)
 		return self.callAPI(self.c2_api,data)
@@ -287,8 +291,8 @@ class API(object):
 		data=OrderedDict([('command','BattleArenaStart'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('opp_wizard_id',opp_wizard_id),('unit_id_list',unit_id_list),('retry',0)])
 		return self.callAPI(self.c2_api,data)
 
-	def BattleDungeonStart(self,dungeon_id,stage_id,unit_id_list):
-		data=OrderedDict([('command','BattleDungeonStart'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('dungeon_id',dungeon_id),('stage_id',stage_id),('helper_list',[]),('mentor_helper_list',[]),('npc_friend_helper_list',[]),('unit_id_list',unit_id_list),('cash_used','0'),('retry',0)])
+	def BattleDungeonStart(self,dungeon_id,stage_id,unit_id_list,mentor_helper_list=[]):
+		data=OrderedDict([('command','BattleDungeonStart'),('wizard_id',self.wizard_id),('session_key',self.getUID()),('proto_ver',self.proto_ver),('infocsv',self.infocsv),('channel_uid',self.uid),('ts_val',self.crypter.GetPlayerServerConnectElapsedTime()),('dungeon_id',dungeon_id),('stage_id',stage_id),('helper_list',[]),('mentor_helper_list',mentor_helper_list),('npc_friend_helper_list',[]),('unit_id_list',unit_id_list),('cash_used','0'),('retry',0)])
 		return self.callAPI(self.c2_api,data)
 
 	def BattleTrialTowerStart_v2(self,difficulty,floor_id,unit_id_list):
@@ -549,7 +553,7 @@ class API(object):
 		return rune_map
 
 	#Sell battle reward runes which's lower than class 6(except legend class 5)
-	def checkReward(self,input, rift_mode=False):
+	def checkReward(self,input, infinityMode=0,rift_mode=False):
 		reward_rune = False
 		goSellRune = False
 		rune = {}
@@ -575,12 +579,22 @@ class API(object):
 				if pri_eff[0] == 1 or pri_eff[0] == 3 or pri_eff[0] == 5:
 					print("Fix value; sell rune")
 					goSellRune = True
-			if rune_class < 5:
-				goSellRune = True
-			if rune_class == 5:
-				if rune_rank <= 4:
+			if infinityMode == 0:
+				if rune_class < 5:
 					goSellRune = True
 					print("lower value; sell rune")
+				if rune_class == 5:
+					if rune_rank <= 4:
+						goSellRune = True
+						print("lower value; sell rune")
+			else:
+				if rune_class < 6:
+					goSellRune = True
+					print("lower value; sell rune")
+				if rune_class == 6:
+					if rune_rank < 4:
+						goSellRune = True
+						print("lower value; sell rune")
 			if goSellRune:
 				if not self.SellRune(rune_id):
 					self.log("sell rune failed")
@@ -702,7 +716,7 @@ class API(object):
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
 		return battle_end
 
-	def doDungeonAndSellRune(self,dungeon_id,stage_id,forbot=0):
+	def doDungeonAndSellRune(self,dungeon_id,stage_id,infinityMode=0):
 		unit_id_list=[]
 		rewardIsRune = False
 		sell_rune = False
@@ -716,24 +730,33 @@ class API(object):
 			self.log('dont have battle data')
 			return
 		battle_key,opp_unit_status_list=self.parseBattleStart(battle_start,2)
-		if forbot != 0:
-			time.sleep(randint(180,240))
+		if infinityMode != 1:
+			time.sleep(randint(10,20))
 		battle_end=self.BattleDungeonResult(battle_key,dungeon_id,stage_id,unit_id_list,opp_unit_status_list)
 		if battle_end:
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
-		rewardIsRune ,sell_rune , rune = self.checkReward(battle_end)
+		try:
+			rewardIsRune ,sell_rune , rune = self.checkReward(battle_end, infinityMode)
+		except:
+			print("sell rune failed")
 		if rewardIsRune and not sell_rune:
 			self.log("get rune:%s"%rune)
 		return battle_end
 
-	def repeatDoDungeonAndSellRune(self, dungeon_id, stage_id ):
+	def repeatDoDungeonAndSellRune(self, dungeon_id, stage_id, infinityMode=0 ):
 		self.checkBlackMarket()
 		self.checkHarvest()
 		checkResult = True
+		cost = 10
+		for dungeon in self.GetDungeonList()['dungeon_list']:
+			if dungeon['dungeon_id'] == dungeon_id:
+				for stage in dungeon['stage_list']:
+					if stage['stage_id'] == stage_id:
+						cost == stage['cost']
 		while(checkResult):
-			if self.user['wizard_info']['wizard_energy']<8:
+			if self.user['wizard_info']['wizard_energy']<cost:
 				break
-			battle_end = self.doDungeonAndSellRune(dungeon_id, stage_id)
+			battle_end = self.doDungeonAndSellRune(dungeon_id, stage_id, infinityMode)
 			if not battle_end:
 				checkResult = False
 		self.checkArena()
@@ -804,7 +827,10 @@ class API(object):
 		battle_end = self.BattleRiftDungeonResult(battle_key, rift_dungeon_id)
 		if battle_end:
 			self.parseBattleRiftResult(battle_end, '%s'%(rift_dungeon_id))
-		rewardIsRune, sell_rune, rune = self.checkReward(battle_end, True)
+		try:
+			rewardIsRune ,sell_rune , rune = self.checkReward(battle_end, 0,True)
+		except:
+			print("sell rune failed")
 		if rewardIsRune and not sell_rune:
 			self.log("get rune:%s" % rune)
 		return battle_end

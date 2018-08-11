@@ -95,6 +95,10 @@ class QPYOU(object):
 		return res
 
 	def bind(self, guest_uid, hive_uid):
+		string = self.s.post('https://hub.qpyou.cn/guest/bind/%s/%s' % (guest_uid, hive_uid),
+									 data=self.p1 % (self.hive_country)).content
+		print("bind res: %s"%string)
+		exit(1)
 		res = json.loads(self.s.post('https://hub.qpyou.cn/guest/bind/%s/%s' % (guest_uid, hive_uid),
 									 data=self.p1 % (self.hive_country)).content)
 		self.guest_id = None
