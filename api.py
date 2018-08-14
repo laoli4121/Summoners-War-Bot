@@ -552,6 +552,17 @@ class API(object):
 			rune_map['sub' + str(i + 1)] = self.rune_effect(rune['sec_eff'][i])
 		return rune_map
 
+	def checkInfinity(self):
+		for dungeon in self.GetDungeonList()['dungeon_list']:
+			if dungeon['dungeon_id'] == 8001:
+				for stage in dungeon['stage_list']:
+					if stage['stage_id'] == 10:
+						cost == stage['cost']
+		if cost ==0:
+			return True
+		else:
+			return False
+
 	#Sell battle reward runes which's lower than class 6(except legend class 5)
 	def checkReward(self,input, infinityMode=0,rift_mode=False):
 		reward_rune = False
@@ -716,7 +727,7 @@ class API(object):
 			self.parseBattleResult(battle_end,'%s:%s'%(dungeon_id,stage_id))
 		return battle_end
 
-	def doDungeonAndSellRune(self,dungeon_id,stage_id,infinityMode=0):
+	def doDungeonAndSellRune(self,dungeon_id,stage_id,infinityMode=0,forbot=0):
 		unit_id_list=[]
 		rewardIsRune = False
 		sell_rune = False
@@ -725,7 +736,16 @@ class API(object):
 				unit_id_list.append({'unit_id':unit['unit_id']})
 		if hasattr(self,'refillEnergy') and self.user['wizard_info']['wizard_crystal']>=30 and self.user['wizard_info']['wizard_energy']<=8:
 			self.BuyShopItem('100001',0,0,0)
-		battle_start=self.BattleDungeonStart(dungeon_id,stage_id,unit_id_list)
+		if forbot==0:
+			battle_start=self.BattleDungeonStart(dungeon_id,stage_id,unit_id_list)
+		else:
+			mentor_list=[]
+			for mentor in self.user['mentor_helper_list']:
+				if mentor['reward_status']==0:
+					mentor_list.append({"wizard_id":mentor['wizard_id'],"unit_id":mentor['rep_unit_id']})
+					break
+			print("mentor_list:%s"%mentor_list)
+			battle_start=self.BattleDungeonStart(dungeon_id,stage_id,unit_id_list,mentor_list)
 		if not battle_start:
 			self.log('dont have battle data')
 			return
@@ -752,7 +772,7 @@ class API(object):
 			if dungeon['dungeon_id'] == dungeon_id:
 				for stage in dungeon['stage_list']:
 					if stage['stage_id'] == stage_id:
-						cost == stage['cost']
+						cost = stage['cost']
 		while(checkResult):
 			if self.user['wizard_info']['wizard_energy']<cost:
 				break
@@ -1332,6 +1352,7 @@ class API(object):
 		return final_list
 
 	def auto_run(self):
+		summon_mon_list=[]
 		quest1 = [{
 			"quest_id":	177
 		}, {
@@ -1496,8 +1517,56 @@ class API(object):
 		self.UpdateEventStatus(27)
 		self.getAllMail()
 		mon_class, mon_id = self.SummonLight(7)
+		summon_mon_list.append({"mon_class":mon_class,"mon_id":mon_id})
 		print("class: %s, mon_id:%s"%(mon_class,mon_id))
-		return mon_class, mon_id
+		self.ClaimAchievementReward(265)
+		self.ClaimAchievementReward(269)
+		self.getAllMail()
+		mentor_count = len(self.user["mentor_helper_list"])
+		print("mentor_count:%s"%mentor_count)
+		mentor_recommand = self.getMentorRecommend()
+		for i in range(mentor_count,5):
+			self.createMentoring(mentor_recommand["mentor_recommend"][i]["wizard_id"])
+			print("create mentoring:%s"%mentor_recommand["mentor_recommend"][i]["wizard_id"])
+		self.doDungeonAndSellRune(8001, 1)
+		self.UpdateAchievement(self.makeList(203,1,1))
+		self.doDungeonAndSellRune(8001, 2)
+		self.doDungeonAndSellRune(8001, 3)
+		self.doDungeonAndSellRune(8001, 4)
+		self.UpdateAchievement(self.makeList(204, 1, 1))
+		self.doDungeonAndSellRune(8001, 5)
+		self.doDungeonAndSellRune(8001, 6)
+		self.doDungeonAndSellRune(8001, 7,1,1)
+		self.UpdateAchievement(self.makeMultiList(3,[46,1,1,49,1,1,205,1,1]))
+		self.ClaimAchievementReward(205)
+		self.UpdateEventStatus(20002)
+		self.doDungeonAndSellRune(8001, 8)
+		self.doDungeonAndSellRune(8001, 9)
+		self.doDungeonAndSellRune(8001, 10,1,1)
+		self.UpdateAchievement(self.makeList(206, 1, 1))
+		self.ClaimAchievementReward(206)
+		mon_class, mon_id = self.SummonLight(7)
+		summon_mon_list.append({"mon_class":mon_class,"mon_id":mon_id})
+		self.doDungeonAndSellRune(9001, 1)
+		self.UpdateAchievement(self.makeList(227, 1, 1))
+		self.doDungeonAndSellRune(9001, 2)
+		self.doDungeonAndSellRune(9001, 3)
+		self.doDungeonAndSellRune(9001, 4)
+		self.UpdateAchievement(self.makeList(228, 1, 1))
+		self.doDungeonAndSellRune(9001, 5)
+		self.doDungeonAndSellRune(9001, 6)
+		self.doDungeonAndSellRune(9001, 7,1,1)
+		self.UpdateAchievement(self.makeMultiList(3,[46,1,1,49,1,1,229,1,1]))
+		self.ClaimAchievementReward(229)
+		self.doDungeonAndSellRune(9001, 8)
+		self.doDungeonAndSellRune(9001, 9)
+		self.doDungeonAndSellRune(9001, 10,1,1)
+		self.UpdateAchievement(self.makeList(230, 1, 1))
+		self.ClaimAchievementReward(230)
+		mon_class, mon_id = self.SummonLight(7)
+		summon_mon_list.append({"mon_class":mon_class,"mon_id":mon_id})
+		print("class: %s, mon_id:%s"%(mon_class,mon_id))
+		return summon_mon_list
 		exit(1)
 		time.sleep(5)
 		self.completeRegion(10,1,0)
@@ -1514,32 +1583,7 @@ class API(object):
 		self.UpdateAchievement(self.makeList(234,1,1))
 		print("finish Region 10!")
 		exit(1)
-		self.ClaimAchievementReward(265)
-		self.getAllMail()
-		self.ClaimAchievementReward(269)
-		self.doDungeonAndSellRune(8001, 1)
-		self.UpdateAchievement(self.makeList(203,1,1))
-		self.doDungeonAndSellRune(8001, 2)
-		self.doDungeonAndSellRune(8001, 3)
-		self.doDungeonAndSellRune(8001, 4)
-		self.UpdateAchievement(self.makeList(204, 1, 1))
-		self.doDungeonAndSellRune(8001, 5)
-		self.doDungeonAndSellRune(8001, 6)
-		self.doDungeonAndSellRune(8001, 7, 1)
-		self.UpdateAchievement(self.makeMultiList(3,[46,1,1,49,1,1,205,1,1]))
-		self.ClaimAchievementReward(205)
-		exit(1)
-		self.UpdateEventStatus(20002)
-		self.doDungeonAndSellRune(8001, 8)
-		self.doDungeonAndSellRune(8001, 9)
-		self.doDungeonAndSellRune(9001, 1)
-		self.UpdateAchievement(self.makeList(227, 1, 1))
-		self.doDungeonAndSellRune(9001, 2)
-		self.doDungeonAndSellRune(9001, 3)
-		self.doDungeonAndSellRune(9001, 4)
-		self.UpdateAchievement(self.makeList(228, 1, 1))
-		self.doDungeonAndSellRune(9001, 5)
-		self.doDungeonAndSellRune(9001, 6)
+
 		self.doDungeonAndSellRune(6001, 1)
 		self.UpdateAchievement(self.makeList(258, 1, 1))
 		self.doDungeonAndSellRune(6001, 2)
@@ -1549,8 +1593,7 @@ class API(object):
 		self.doDungeonAndSellRune(6001, 5)
 		self.doDungeonAndSellRune(6001, 6)
 	#================================
-	# self.doDungeonAndSellRune(8001, 10)
-	# self.UpdateAchievement(self.makeList(206, 1, 1))
+
 	# self.ClaimAchievementReward(206)
 	# mon_class, mon_id = self.SummonLight(7)
 	# print("class: %s, mon_id:%s"%(mon_class,mon_id))
